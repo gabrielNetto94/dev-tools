@@ -6,12 +6,14 @@ Skills live in `.agents/skills/`. Read the matching `SKILL.md` before starting a
 |---|---|
 | New feature, refactor, ambiguous request | `planner` |
 | Tests, regressions | `tester` |
-| Changes in `app/public/*` | `ui` |
+| Changes in `app/public/*`, anything visual, design system | `ui` |
 | dump/restore, TEMPLATE, SSE backend | `postgres-specialist` |
 | DynamoDB, NoSQL Workbench, item/variable editing, AWS SDK | `dynamodb-specialist` |
 | compose, Dockerfile, env | `docker-specialist` |
 | Input handling, credentials, auth | `security-specialist` |
 | Keeping README, agents and `.env.example` up to date | `docs` |
+
+Every change that reaches the screen (new field, message, state, module) goes through `ui`, even when another agent owns the task: the design system in `.agents/skills/ui/SKILL.md` is mandatory, not a suggestion.
 
 Start non-trivial work with `planner`; involve `security-specialist` whenever credentials, SQL identifiers, or child processes are touched.
 

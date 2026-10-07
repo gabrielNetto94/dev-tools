@@ -4,685 +4,626 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DEVinho - Postgres Cloner & DynamoDB Workbench</title>
-  <meta name="description" content="Suite moderna DEVinho para clonagem rápida de PostgreSQL e gerenciamento visual de variáveis do DynamoDB estilo NoSQL Workbench.">
+  <meta name="description" content="Suite DEVinho para clonagem rápida de PostgreSQL e edição de itens do DynamoDB.">
   <link rel="icon" type="image/jpeg" href="devinho-logo.jpg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Background Glow Effects -->
-  <div class="glow-bg glow-1"></div>
-  <div class="glow-bg glow-2"></div>
-
-  <!-- Layout Principal com Menu Lateral Retrátil -->
-  <div class="layout-wrapper" id="layout-wrapper">
-    <!-- Menu Lateral (Sidebar) Retrátil -->
-    <aside class="app-sidebar" id="app-sidebar">
-      <div class="sidebar-header">
-        <div class="brand-sidebar">
-          <div class="brand-avatar-wrap" title="DEVinho - Dev & Data Sommelier">
-            <img src="devinho-logo.jpg" alt="DEVinho Logo" class="brand-avatar" />
-          </div>
-          <div class="brand-title-wrap">
-            <span class="brand-name">DEV<span class="text-wine">inho</span></span>
-            <span class="brand-badge">Sommelier Suite</span>
-          </div>
+  <div class="app" id="layout-wrapper">
+    <!-- Sidebar -->
+    <aside class="sb" id="app-sidebar" aria-label="Navegação principal">
+      <div class="sb-top">
+        <div class="brand" title="DEVinho">
+          <img src="devinho-logo.jpg" alt="" class="logo" />
+          <span class="brand-name">DEV<b>inho</b></span>
         </div>
-        <button id="btn-toggle-sidebar" class="btn-sidebar-toggle" title="Recolher / Expandir Menu" aria-label="Alternar menu lateral">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="15 18 9 12 15 6"></polyline>
-          </svg>
+        <button type="button" id="btn-toggle-sidebar" class="iconbtn" aria-label="Recolher sidebar" title="Recolher sidebar (Ctrl+B)">
+          <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M9 3v18"></path></svg>
         </button>
       </div>
 
-      <nav class="sidebar-nav">
-        <div class="nav-section-label">Módulos</div>
-        <button type="button" class="nav-item active" id="nav-btn-postgres" data-view="postgres" title="Postgres Cloner">
-          <span class="nav-icon">🐘</span>
-          <span class="nav-text">Postgres Cloner</span>
+      <div class="sb-label">Módulos</div>
+      <nav class="nav">
+        <button type="button" id="nav-btn-postgres" data-view="postgres" aria-current="page" title="Postgres Cloner">
+          <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v14a9 3 0 0 0 18 0V5"></path><path d="M3 12a9 3 0 0 0 18 0"></path></svg>
+          <span class="lbl">Postgres Cloner</span>
+          <span class="dot" id="nav-dot-postgres" role="img" aria-label="Verificando conexão"></span>
         </button>
-        <button type="button" class="nav-item" id="nav-btn-dynamodb" data-view="dynamodb" title="DynamoDB Workbench">
-          <span class="nav-icon">⚡</span>
-          <span class="nav-text">DynamoDB Workbench</span>
+        <button type="button" id="nav-btn-dynamodb" data-view="dynamodb" title="DynamoDB Workbench">
+          <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18M3 15h18M9 3v18"></path></svg>
+          <span class="lbl">DynamoDB Workbench</span>
+          <span class="dot" id="nav-dot-dynamodb" role="img" aria-label="Desconectado"></span>
         </button>
+        <span class="nav-ind" id="nav-indicator" aria-hidden="true"></span>
       </nav>
 
-      <div class="sidebar-footer">
-        <div class="sidebar-quote">
-          <span class="quote-wine">🍷</span>
-          <span class="quote-text">Safra Especial DEVinho</span>
-        </div>
-        <div class="sidebar-version-pill">
-          <span class="status-dot"></span>
-          <span class="sidebar-version-text">v1.3.0 • Safra 2026</span>
-        </div>
-      </div>
+      <div class="sb-foot">v1.3.0</div>
     </aside>
 
-    <!-- Área de Conteúdo Principal -->
-    <div class="app-main">
-      <div class="app-container">
+    <!-- Conteúdo principal -->
+    <main class="main">
+      <header class="top">
+        <h1>
+          <span id="title-postgres">Postgres Cloner</span>
+          <span id="title-dynamodb" class="crumb hidden">DynamoDB Workbench</span>
+        </h1>
+        <span class="spacer"></span>
 
-        <!-- ========================================== -->
-        <!-- MÓDULO 1: POSTGRES CLONER                 -->
-        <!-- ========================================== -->
-        <div id="view-postgres" class="module-view active">
-          <!-- Header Postgres -->
-          <header class="app-header">
-            <div class="brand">
-              <div class="brand-logo-frame" title="DEVinho">
-                <img src="devinho-logo.jpg" alt="DEVinho Logo" class="header-brand-logo" />
-              </div>
+        <div class="top-group" id="top-postgres">
+          <span class="status" id="server-status-badge">
+            <span class="dot" id="server-status-dot"></span>
+            <span id="server-status-text">Conectando ao destino…</span>
+          </span>
+        </div>
+
+        <div class="top-group hidden" id="top-dynamodb">
+          <span class="status" id="dynamo-status-badge">
+            <span class="dot" id="dynamo-status-dot"></span>
+            <span id="dynamo-status-text">Não conectado</span>
+          </span>
+          <button type="button" id="btn-toggle-dynamo-creds" class="btn btn-ghost btn-sm" aria-expanded="true">
+            <svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"></path><circle cx="16" cy="6" r="2"></circle><circle cx="10" cy="12" r="2"></circle><circle cx="18" cy="18" r="2"></circle></svg>
+            Conexão
+          </button>
+        </div>
+      </header>
+
+      <!-- ========================================== -->
+      <!-- MÓDULO 1: POSTGRES CLONER                 -->
+      <!-- ========================================== -->
+      <div id="view-postgres" class="view pg">
+        <section class="flow" aria-label="Clonar banco">
+          <form id="form-clone" onsubmit="return false;" novalidate>
+            <!-- 1. Origem -->
+            <div class="step current" id="step-source">
+              <span class="step-n">1</span>
               <div>
-                <h1 class="brand-title">Postgres Cloner <span class="badge-sommelier">DEVinho</span></h1>
-                <p class="brand-subtitle">Clonagem e streaming com a precisão de um sommelier</p>
-              </div>
-            </div>
-            <div class="header-status">
-              <div class="status-badge" id="server-status-badge">
-                <span class="status-dot pulsing"></span>
-                <span id="server-status-text">Conectando ao PostgreSQL...</span>
-              </div>
-              <button id="btn-refresh-clones" class="btn-icon" title="Atualizar Lista de Clones">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
-                </svg>
-              </button>
-            </div>
-          </header>
-
-          <!-- Main Content Grid -->
-          <main class="main-grid">
-            <!-- Section: Nova Clonagem -->
-            <section class="card glass-card clone-card">
-              <div class="card-header">
-                <div class="card-icon cyan-gradient">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                  </svg>
-                </div>
-                <div>
-                  <h2 class="card-title">Clonar Banco de Dados</h2>
-                  <p class="card-description">Selecione o banco de dados que deseja clonar para o ambiente local.</p>
-                </div>
-              </div>
-
-              <form id="form-clone" class="clone-form" onsubmit="return false;">
-                <!-- 1. Seleção do Banco de Dados de Origem -->
-                <div class="form-group">
-                  <div class="label-row">
-                    <label for="select-source-db" class="label-highlight">Banco de Dados de Origem</label>
-                    <div class="source-server-pill" id="source-server-pill">
-                      <span class="source-server-label" id="source-server-display">Origem: host.docker.internal:5432</span>
-                      <button type="button" class="btn-chip" id="btn-toggle-server-config">⚙️ Trocar Servidor</button>
+                <h2 class="step-h">Origem</h2>
+                <div class="step-b">
+                  <div class="field" id="field-source-server">
+                    <span class="flabel">Servidor</span>
+                    <div class="srv" id="source-server-pill">
+                      <span class="dot" id="source-server-dot" role="img" aria-label="Conectando"></span>
+                      <span class="mono" id="source-server-display">postgres@host.docker.internal:5432</span>
+                      <button type="button" class="btn btn-ghost btn-sm" id="btn-toggle-server-config">Trocar</button>
                     </div>
                   </div>
 
-                  <div class="select-with-button">
-                    <select id="select-source-db" name="sourceDb" class="select-prominent" required>
-                      <option value="" disabled selected>Carregando bancos disponíveis...</option>
-                    </select>
-                    <button type="button" id="btn-refresh-source-dbs" class="btn-secondary btn-icon-only" title="Recarregar Bancos">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
-                      </svg>
-                    </button>
-                  </div>
-
-                  <!-- Card com estatísticas do banco selecionado -->
-                  <div id="source-db-info" class="selected-db-banner hidden">
-                    <div class="db-stat-item">
-                      <span class="db-stat-label">Banco Selecionado:</span>
-                      <strong id="info-db-name" class="db-stat-val">-</strong>
-                    </div>
-                    <div class="db-stat-item">
-                      <span class="db-stat-label">Tamanho Estimado:</span>
-                      <span id="info-db-size" class="db-stat-badge">-</span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Gaveta Colapsável: Configuração do Servidor de Origem -->
-                <div id="drawer-server-config" class="server-config-drawer hidden">
-                  <div class="drawer-header">
-                    <h3 class="drawer-title">Configurar Servidor de Origem</h3>
-                    <span class="drawer-subtitle">Conecte a outro servidor (ex: RDS, localhost, staging)</span>
-                  </div>
-                  
-                  <div class="form-row">
-                    <div class="form-group flex-2">
-                      <label for="input-server-host">Host / Servidor</label>
-                      <input type="text" id="input-server-host" placeholder="ex: host.docker.internal" />
-                    </div>
-                    <div class="form-group flex-1">
-                      <label for="input-server-port">Porta</label>
-                      <input type="text" id="input-server-port" placeholder="5432" value="5432" />
-                    </div>
-                  </div>
-
-                  <div class="form-row">
-                    <div class="form-group flex-1">
-                      <label for="input-server-user">Usuário</label>
-                      <input type="text" id="input-server-user" placeholder="postgres" value="postgres" />
-                    </div>
-                    <div class="form-group flex-1">
-                      <label for="input-server-pass">Senha</label>
-                      <input type="password" id="input-server-pass" placeholder="••••••••" value="postgres" />
-                    </div>
-                  </div>
-
-                  <div class="drawer-actions">
-                    <div class="presets-row">
-                      <span class="preset-label">Atalho padrão:</span>
-                      <button type="button" class="btn-chip" id="preset-host-machine">host.docker.internal:5432</button>
-                    </div>
-                    <button type="button" id="btn-connect-server" class="btn-secondary btn-sm">
-                      Conectar e Listar Bancos
-                    </button>
-                  </div>
-                </div>
-
-                <!-- 2. Configuração do Servidor de Destino -->
-                <div class="form-group target-server-section">
-                  <div class="label-row">
-                    <label class="label-highlight">Servidor de Destino</label>
-                    <span class="target-server-summary" id="target-server-summary">🐳 Local Docker (Container cloner_postgres:5432)</span>
-                  </div>
-
-                  <div class="btn-segmented-group" id="target-server-selector">
-                    <button type="button" class="segmented-btn active" data-target-mode="local" id="btn-target-mode-local">
-                      <span class="seg-icon">🐳</span> Local Docker
-                    </button>
-                    <button type="button" class="segmented-btn" data-target-mode="source" id="btn-target-mode-source">
-                      <span class="seg-icon">🔗</span> Mesmo da Origem
-                    </button>
-                    <button type="button" class="segmented-btn" data-target-mode="custom" id="btn-target-mode-custom">
-                      <span class="seg-icon">⚙️</span> Outro Servidor
-                    </button>
-                  </div>
-
-                  <!-- Gaveta Custom Target Server -->
-                  <div id="drawer-target-server" class="server-config-drawer hidden">
-                    <div class="drawer-header">
-                      <h3 class="drawer-title">Configurar Servidor de Destino Personalizado</h3>
-                      <span class="drawer-subtitle">Conecte a outro PostgreSQL onde o clone será gravado</span>
-                    </div>
-                    
-                    <div class="form-row">
-                      <div class="form-group flex-2">
-                        <label for="input-target-host">Host / Servidor Destino</label>
-                        <input type="text" id="input-target-host" placeholder="ex: host.docker.internal ou rds.endpoint" />
+                  <!-- Formulário do servidor de origem -->
+                  <div id="drawer-server-config" class="srv-form hidden" role="group" aria-label="Servidor de origem">
+                    <div class="grid-2">
+                      <div class="field">
+                        <label for="input-server-host">Host</label>
+                        <input type="text" id="input-server-host" class="input mono" placeholder="host.docker.internal" />
                       </div>
-                      <div class="form-group flex-1">
-                        <label for="input-target-port">Porta</label>
-                        <input type="text" id="input-target-port" placeholder="5432" value="5432" />
+                      <div class="field">
+                        <label for="input-server-port">Porta</label>
+                        <input type="text" id="input-server-port" class="input mono" placeholder="5432" value="5432" inputmode="numeric" />
                       </div>
                     </div>
-
-                    <div class="form-row">
-                      <div class="form-group flex-1">
-                        <label for="input-target-user">Usuário</label>
-                        <input type="text" id="input-target-user" placeholder="postgres" value="postgres" />
+                    <div class="grid-2e">
+                      <div class="field">
+                        <label for="input-server-user">Usuário</label>
+                        <input type="text" id="input-server-user" class="input mono" placeholder="postgres" value="postgres" />
                       </div>
-                      <div class="form-group flex-1">
-                        <label for="input-target-pass">Senha</label>
-                        <input type="password" id="input-target-pass" placeholder="••••••••" value="postgres" />
+                      <div class="field">
+                        <label for="input-server-pass">Senha</label>
+                        <div class="affix">
+                          <input type="password" id="input-server-pass" class="input mono" value="postgres" />
+                          <button type="button" class="iconbtn" id="btn-toggle-server-pass" aria-label="Mostrar senha" title="Mostrar senha">
+                            <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                          </button>
+                        </div>
                       </div>
                     </div>
+                    <div class="alert err hidden" id="source-error" role="alert">
+                      <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4M12 16h.01"></path></svg>
+                      <p><span id="source-error-text"></span><br><span class="muted">Confira se o servidor está no ar e aceita conexões externas.</span></p>
+                    </div>
+                    <div class="input-row between">
+                      <button type="button" class="link" id="preset-host-machine">Usar servidor padrão</button>
+                      <div class="input-row">
+                        <button type="button" class="btn btn-ghost" id="btn-cancel-server-config">Cancelar</button>
+                        <button type="button" class="btn btn-primary" id="btn-connect-server">Conectar</button>
+                      </div>
+                    </div>
+                  </div>
 
-                    <div class="drawer-actions">
-                      <button type="button" id="btn-connect-target-server" class="btn-secondary btn-sm">
-                        Conectar e Carregar Bancos do Destino
+                  <div class="field" id="field-source-db">
+                    <label for="btn-combo-source-db">Banco de origem</label>
+                    <div class="input-row">
+                      <div class="combo" id="combo-source-db">
+                        <select id="select-source-db" name="sourceDb" class="sr" tabindex="-1" aria-hidden="true">
+                          <option value="" disabled selected>Carregando bancos…</option>
+                        </select>
+                        <button type="button" class="input mono combo-btn" id="btn-combo-source-db" aria-haspopup="listbox" aria-expanded="false" aria-controls="list-combo-source-db">
+                          <span class="combo-val"></span>
+                          <span class="combo-size"></span>
+                          <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+                        </button>
+                        <div class="combo-pop hidden">
+                          <div class="affix lead">
+                            <svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+                            <input type="text" class="input combo-search" id="input-combo-source-db" placeholder="Buscar banco" aria-label="Buscar banco" role="combobox" aria-expanded="true" aria-controls="list-combo-source-db" autocomplete="off" spellcheck="false" />
+                          </div>
+                          <div class="combo-list" id="list-combo-source-db" role="listbox"></div>
+                        </div>
+                      </div>
+                      <button type="button" id="btn-refresh-source-dbs" class="iconbtn bordered" aria-label="Recarregar lista de bancos" title="Recarregar lista">
+                        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"></path><path d="M21 3v5h-5"></path></svg>
                       </button>
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
 
-                <!-- 3. Escolha do Banco de Destino (Novo ou Sobrescrever) -->
-                <div class="form-group target-database-section">
-                  <div class="label-row">
-                    <label class="label-highlight">Banco de Dados de Destino</label>
-                  </div>
+            <!-- 2. Destino -->
+            <div class="step" id="step-target">
+              <span class="step-n">2</span>
+              <div>
+                <h2 class="step-h">Destino</h2>
+                <div class="step-b">
+                  <div class="field">
+                    <span class="flabel" id="label-target-server">Servidor de destino</span>
+                    <div class="segment" id="target-server-selector" role="group" aria-labelledby="label-target-server">
+                      <button type="button" id="btn-target-mode-local" data-target-mode="local" aria-pressed="true">Docker local</button>
+                      <button type="button" id="btn-target-mode-source" data-target-mode="source" aria-pressed="false">Mesmo da origem</button>
+                      <button type="button" id="btn-target-mode-custom" data-target-mode="custom" aria-pressed="false">Outro servidor</button>
+                    </div>
+                    <p class="hint">
+                      <span id="target-server-summary">Postgres do DEVinho (container local)</span>
+                      <button type="button" class="link hidden" id="btn-edit-target-server">Editar</button>
+                    </p>
 
-                  <div class="btn-segmented-group" id="target-db-mode-selector">
-                    <button type="button" class="segmented-btn active" data-db-mode="new" id="btn-target-db-new">
-                      <span class="seg-icon">➕</span> Criar Novo Banco (Clone)
-                    </button>
-                    <button type="button" class="segmented-btn" data-db-mode="existing" id="btn-target-db-existing">
-                      <span class="seg-icon">🔁</span> Sobrescrever Banco Existente
-                    </button>
-                  </div>
-
-                  <!-- Opção A: Criar Novo Banco -->
-                  <div id="section-target-new-db" class="target-subview">
-                    <div class="form-row">
-                      <div class="form-group flex-2">
-                        <div class="label-row">
-                          <label for="input-clone-name">Nome do Novo Banco</label>
-                          <button type="button" class="btn-link" id="btn-suggest-name">Sugerir Nome</button>
+                    <!-- Formulário do servidor de destino personalizado -->
+                    <div id="drawer-target-server" class="srv-form hidden" role="group" aria-label="Servidor de destino">
+                      <div class="grid-2">
+                        <div class="field">
+                          <label for="input-target-host">Host</label>
+                          <input type="text" id="input-target-host" class="input mono" placeholder="host.docker.internal ou endpoint do RDS" />
                         </div>
-                        <input 
-                          type="text" 
-                          id="input-clone-name" 
-                          name="cloneName"
-                          placeholder="ex: clone_teste_01" 
-                          pattern="^[a-zA-Z0-9_]+$"
-                          title="Apenas letras, números e underlines"
-                          required 
-                        />
+                        <div class="field">
+                          <label for="input-target-port">Porta</label>
+                          <input type="text" id="input-target-port" class="input mono" placeholder="5432" value="5432" inputmode="numeric" />
+                        </div>
                       </div>
-
-                      <div class="form-group flex-1">
-                        <label for="select-clone-mode">Modo de Cópia</label>
-                        <select id="select-clone-mode" name="cloneMode">
-                          <option value="full">Completo (Schema + Dados)</option>
-                          <option value="schema">Apenas Esquema (Sem Dados)</option>
-                        </select>
+                      <div class="grid-2e">
+                        <div class="field">
+                          <label for="input-target-user">Usuário</label>
+                          <input type="text" id="input-target-user" class="input mono" placeholder="postgres" value="postgres" />
+                        </div>
+                        <div class="field">
+                          <label for="input-target-pass">Senha</label>
+                          <div class="affix">
+                            <input type="password" id="input-target-pass" class="input mono" value="postgres" />
+                            <button type="button" class="iconbtn" id="btn-toggle-target-pass" aria-label="Mostrar senha" title="Mostrar senha">
+                              <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="input-row between">
+                        <span class="hint">O clone será gravado neste servidor.</span>
+                        <button type="button" class="btn btn-primary" id="btn-connect-target-server">Usar este servidor</button>
                       </div>
                     </div>
+                  </div>
 
-                    <div class="options-row">
-                      <label class="custom-checkbox">
-                        <input type="checkbox" id="check-overwrite" name="dropIfExists" checked />
-                        <span class="checkbox-indicator"></span>
-                        <span>Substituir se o banco de destino já existir</span>
+                  <div class="field">
+                    <span class="flabel" id="label-target-db-mode">Banco de destino</span>
+                    <div class="segment" id="target-db-mode-selector" role="group" aria-labelledby="label-target-db-mode">
+                      <button type="button" id="btn-target-db-new" data-db-mode="new" aria-pressed="true">Criar novo banco</button>
+                      <button type="button" id="btn-target-db-existing" data-db-mode="existing" aria-pressed="false">Sobrescrever existente</button>
+                    </div>
+                  </div>
+
+                  <!-- Opção A: criar novo banco -->
+                  <div id="section-target-new-db" class="step-b">
+                    <div class="field">
+                      <label for="input-clone-name">Nome do novo banco</label>
+                      <div class="input-row">
+                        <input
+                          type="text"
+                          id="input-clone-name"
+                          name="cloneName"
+                          class="input mono"
+                          placeholder="clone_teste_01"
+                          aria-describedby="hint-clone-name"
+                        />
+                        <button type="button" class="btn" id="btn-suggest-name">Sugerir nome</button>
+                      </div>
+                      <p class="hint" id="hint-clone-name">Apenas letras, números e _</p>
+                    </div>
+                    <label class="check" for="check-overwrite">
+                      <input type="checkbox" id="check-overwrite" name="dropIfExists" checked />
+                      Substituir se o banco de destino já existir
+                    </label>
+                  </div>
+
+                  <!-- Opção B: sobrescrever banco existente -->
+                  <div id="section-target-existing-db" class="step-b hidden">
+                    <div class="field">
+                      <label for="btn-combo-target-db">Banco a sobrescrever</label>
+                      <div class="input-row">
+                        <div class="combo" id="combo-target-db">
+                          <select id="select-target-db" name="targetDbName" class="sr" tabindex="-1" aria-hidden="true">
+                            <option value="" disabled selected>Carregando bancos…</option>
+                          </select>
+                          <button type="button" class="input mono combo-btn" id="btn-combo-target-db" aria-haspopup="listbox" aria-expanded="false" aria-controls="list-combo-target-db">
+                            <span class="combo-val"></span>
+                            <span class="combo-size"></span>
+                            <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+                          </button>
+                          <div class="combo-pop hidden">
+                            <div class="affix lead">
+                              <svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+                              <input type="text" class="input combo-search" id="input-combo-target-db" placeholder="Buscar banco" aria-label="Buscar banco" role="combobox" aria-expanded="true" aria-controls="list-combo-target-db" autocomplete="off" spellcheck="false" />
+                            </div>
+                            <div class="combo-list" id="list-combo-target-db" role="listbox"></div>
+                          </div>
+                        </div>
+                        <button type="button" id="btn-refresh-target-dbs" class="iconbtn bordered" aria-label="Recarregar bancos do destino" title="Recarregar bancos do destino">
+                          <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"></path><path d="M21 3v5h-5"></path></svg>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="alert err hidden" id="target-error" role="alert">
+                      <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4M12 16h.01"></path></svg>
+                      <p id="target-error-text"></p>
+                    </div>
+                    <div class="alert warn hidden" id="warning-target-overwrite" role="status">
+                      <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path><path d="M12 9v4M12 17h.01"></path></svg>
+                      <p><b id="warning-overwrite-title"></b><br><span class="muted" id="warning-overwrite-desc"></span></p>
+                    </div>
+                  </div>
+
+                  <div class="field">
+                    <span class="flabel" id="label-clone-mode">Modo de cópia</span>
+                    <div class="opts" role="radiogroup" aria-labelledby="label-clone-mode">
+                      <label class="opt" for="mode-full">
+                        <input type="radio" name="cloneMode" id="mode-full" value="full" checked>
+                        <div><b>Completo</b><span>Schema + dados</span></div>
+                      </label>
+                      <label class="opt" for="mode-schema">
+                        <input type="radio" name="cloneMode" id="mode-schema" value="schema">
+                        <div><b>Somente schema</b><span>Tabelas vazias</span></div>
                       </label>
                     </div>
                   </div>
-
-                  <!-- Opção B: Sobrescrever Banco Existente -->
-                  <div id="section-target-existing-db" class="target-subview hidden">
-                    <div class="form-row">
-                      <div class="form-group flex-2">
-                        <div class="label-row">
-                          <label for="select-target-db">Selecione o Banco para Sobrescrever</label>
-                          <span class="badge-danger-sm">Destrutivo</span>
-                        </div>
-                        <div class="select-with-button">
-                          <select id="select-target-db" name="targetDbName" class="select-prominent">
-                            <option value="" disabled selected>Carregando bancos do servidor de destino...</option>
-                          </select>
-                          <button type="button" id="btn-refresh-target-dbs" class="btn-secondary btn-icon-only" title="Recarregar Bancos do Destino">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-
-                      <div class="form-group flex-1">
-                        <label for="select-clone-mode-existing">Modo de Cópia</label>
-                        <select id="select-clone-mode-existing">
-                          <option value="full">Completo (Schema + Dados)</option>
-                          <option value="schema">Apenas Esquema (Sem Dados)</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <!-- Warning banner quando sobrescrevendo banco existente -->
-                    <div id="warning-target-overwrite" class="target-overwrite-banner">
-                      <div class="warning-icon">⚠️</div>
-                      <div class="warning-content">
-                        <strong id="warning-overwrite-title">Atenção ao sobrescrever!</strong>
-                        <p id="warning-overwrite-desc">O banco selecionado no servidor de destino terá seus dados recriados e sobrescritos com o dump do banco de origem.</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Botão Principal de Clonagem -->
-                <div class="action-footer">
-                  <button type="submit" id="btn-submit-clone" class="btn-primary">
-                    <span class="btn-spinner hidden" id="spinner-clone"></span>
-                    <span class="btn-icon-inside">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
-                      </svg>
-                    </span>
-                    <span id="text-btn-clone">Clonar Banco Selecionado</span>
-                  </button>
-                </div>
-              </form>
-            </section>
-
-            <!-- Section: Console de Logs em Tempo Real -->
-            <section class="card glass-card terminal-card">
-              <div class="card-header">
-                <div class="card-icon violet-gradient">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="4 17 10 11 4 5"></polyline>
-                    <line x1="12" y1="19" x2="20" y2="19"></line>
-                  </svg>
-                </div>
-                <div class="terminal-title-bar">
-                  <div>
-                    <h2 class="card-title">Console de Execução (Stream)</h2>
-                    <p class="card-description">Progresso do pipe de memória em tempo real</p>
-                  </div>
-                  <div class="terminal-badge" id="terminal-status-badge">Pronto</div>
                 </div>
               </div>
+            </div>
 
-              <div class="terminal-window" id="terminal-window">
-                <div class="terminal-lines" id="terminal-lines">
-                  <div class="log-line log-system">Selecione o banco desejado acima e clique em "Clonar Banco Selecionado".</div>
-                </div>
-              </div>
-
-              <!-- Banner de Sucesso / Conexão Pronta -->
-              <div id="success-banner" class="success-banner hidden">
-                <div class="success-header">
-                  <span class="success-icon">✓</span>
-                  <div>
-                    <h3 class="success-title">Clone Criado com Sucesso!</h3>
-                    <p class="success-sub" id="success-duration">Duração: 0.2s</p>
-                  </div>
-                </div>
-                <div class="connection-string-box">
-                  <code id="success-conn-string">postgresql://postgres:postgres@localhost:5432/clone_teste_01</code>
-                  <button type="button" class="btn-secondary btn-sm" id="btn-copy-success-conn">Copiar URL</button>
-                </div>
-              </div>
-            </section>
-          </main>
-
-          <!-- Section: Bancos Clonados Existentes -->
-          <section class="card glass-card clones-list-section">
-            <div class="clones-header-row">
+            <!-- 3. Clonar -->
+            <div class="step" id="step-clone">
+              <span class="step-n">3</span>
               <div>
-                <h2 class="card-title">Bancos Clonados Ativos</h2>
-                <p class="card-description">Bancos de teste presentes no seu container PostgreSQL local.</p>
-              </div>
-              <div class="clones-stats" id="clones-stats-count">
-                0 bancos encontrados
-              </div>
-            </div>
-
-            <div class="clones-grid" id="clones-grid">
-              <div class="empty-state" id="empty-clones-state">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-                  <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-                  <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-                </svg>
-                <p>Nenhum banco clonado ainda. Selecione um banco acima e clique para clonar!</p>
+                <h2 class="step-h">Clonar</h2>
+                <div class="step-b tight">
+                  <div>
+                    <button type="submit" id="btn-submit-clone" class="btn btn-primary btn-lg">
+                      <svg class="i spin hidden" id="spinner-clone" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.2-8.56"></path></svg>
+                      <span id="text-btn-clone">Clonar banco</span>
+                    </button>
+                  </div>
+                  <p class="hint" id="hint-clone">O log aparece ao lado enquanto a clonagem roda.</p>
+                </div>
               </div>
             </div>
-          </section>
+          </form>
+        </section>
 
-          <!-- Modal de Confirmação de Exclusão Postgres -->
-          <div id="modal-delete" class="modal-backdrop hidden">
-            <div class="modal-card">
-              <h3 class="modal-title">Excluir Banco de Dados?</h3>
-              <p class="modal-text">Você tem certeza que deseja excluir permanentemente o banco <strong id="modal-delete-target-name">clone_01</strong>? Esta ação não pode ser desfeita.</p>
-              <div class="modal-actions">
-                <button type="button" class="btn-secondary" id="btn-modal-cancel">Cancelar</button>
-                <button type="button" class="btn-danger" id="btn-modal-confirm-delete">Excluir Banco</button>
+        <section class="side" aria-label="Progresso e clones">
+          <!-- Resultado da última clonagem -->
+          <div id="success-banner" class="result hidden" role="status">
+            <div class="result-h">
+              <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m8.5 12 2.5 2.5 4.5-5"></path></svg>
+              <b id="success-duration">Clone concluído</b>
+              <span class="muted mono" id="success-route"></span>
+            </div>
+            <div class="field">
+              <span class="flabel">URL de conexão</span>
+              <div class="copyfield">
+                <code id="success-conn-string"></code>
+                <button type="button" class="btn btn-sm" id="btn-copy-success-conn">Copiar</button>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- ========================================== -->
-        <!-- MÓDULO 2: DYNAMODB WORKBENCH              -->
-        <!-- ========================================== -->
-        <div id="view-dynamodb" class="module-view hidden">
-          <!-- Header DynamoDB -->
-          <header class="app-header">
-            <div class="brand">
-              <div class="brand-logo-frame" title="DEVinho">
-                <img src="devinho-logo.jpg" alt="DEVinho Logo" class="header-brand-logo" />
-              </div>
-              <div>
-                <h1 class="brand-title">DynamoDB Workbench <span class="badge-sommelier">DEVinho</span></h1>
-                <p class="brand-subtitle">Inspecione e altere variáveis e atributos com a safra perfeita do NoSQL</p>
-              </div>
-            </div>
-            <div class="header-status">
-              <div class="status-badge" id="dynamo-status-badge">
-                <span class="status-dot"></span>
-                <span id="dynamo-status-text">Não conectado</span>
-              </div>
-              <button type="button" id="btn-toggle-dynamo-creds" class="btn-secondary btn-sm" title="Configurar Credenciais AWS">
-                ⚙️ Conexão & Credenciais
+          <!-- Console de log -->
+          <div class="console hidden" id="console-box" role="region" aria-label="Log da clonagem">
+            <div class="console-h">
+              <svg class="i i-sm faint" viewBox="0 0 24 24" aria-hidden="true"><path d="m4 17 6-6-6-6M12 19h8"></path></svg>
+              <span class="t">Log</span>
+              <span class="status">
+                <span class="dot" id="terminal-status-dot"></span>
+                <b id="terminal-status-badge">Pronto</b>
+                <span id="terminal-status-detail"></span>
+              </span>
+              <span class="spacer"></span>
+              <button type="button" class="iconbtn" id="btn-copy-log" aria-label="Copiar log" title="Copiar log">
+                <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"></path></svg>
+              </button>
+              <button type="button" class="iconbtn" id="btn-toggle-log" aria-label="Ocultar log" title="Ocultar log" aria-expanded="true" aria-controls="terminal-window">
+                <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
               </button>
             </div>
-          </header>
+            <div class="bar" aria-hidden="true"><span></span></div>
+            <div class="log" id="terminal-window" tabindex="0">
+              <div id="terminal-lines" aria-live="polite"></div>
+            </div>
+          </div>
 
-          <!-- Gaveta de Conexão & Credenciais DynamoDB -->
-          <section id="drawer-dynamo-creds" class="card glass-card dynamo-creds-drawer">
-            <div class="drawer-header">
-              <div>
-                <h3 class="drawer-title">Configurar Conexão DynamoDB</h3>
-                <span class="drawer-subtitle">Conecte à AWS Cloud, DynamoDB Local ou LocalStack</span>
-              </div>
-              <div id="dynamo-env-indicator" class="pill-badge pill-info hidden">
-                ⚙️ Variáveis .env detectadas
+          <!-- Clones existentes -->
+          <div class="sec-h">
+            <h2>Clones</h2>
+            <span class="count" id="clones-stats-count">0</span>
+            <span class="spacer"></span>
+            <button type="button" id="btn-refresh-clones" class="iconbtn" aria-label="Atualizar lista de clones" title="Atualizar lista">
+              <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"></path><path d="M21 3v5h-5"></path></svg>
+            </button>
+          </div>
+          <div id="clones-grid"></div>
+        </section>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- MÓDULO 2: DYNAMODB WORKBENCH              -->
+      <!-- ========================================== -->
+      <div id="view-dynamodb" class="view ddb-view hidden">
+        <!-- Conexão e credenciais -->
+        <div id="drawer-dynamo-creds" class="connect">
+          <form id="form-dynamo-creds" class="connect-card" aria-labelledby="dynamo-connect-title" onsubmit="return false;">
+            <div>
+              <h2 id="dynamo-connect-title">Conectar</h2>
+              <p class="lead">Escolha onde o DynamoDB está rodando. Depois de conectar, este painel some e fica só o status no topo.</p>
+            </div>
+
+            <div class="field">
+              <span class="flabel">Endpoint</span>
+              <div class="chips" role="group" aria-label="Atalhos de endpoint">
+                <button type="button" class="chip" id="preset-dynamo-aws" aria-pressed="true">AWS</button>
+                <button type="button" class="chip" id="preset-dynamo-docker" aria-pressed="false">Docker <span class="mono">dynamodb-local:8000</span></button>
+                <button type="button" class="chip" id="preset-dynamo-host" aria-pressed="false">Host <span class="mono">localhost:8000</span></button>
+                <button type="button" class="chip" id="preset-dynamo-localstack" aria-pressed="false">LocalStack <span class="mono">:4566</span></button>
               </div>
             </div>
 
-            <form id="form-dynamo-creds" onsubmit="return false;">
-              <div class="form-row">
-                <div class="form-group flex-1">
-                  <label for="input-dynamo-region">Região AWS</label>
-                  <input type="text" id="input-dynamo-region" list="aws-regions-list" placeholder="us-east-1" value="us-east-1" />
-                  <datalist id="aws-regions-list">
-                    <option value="us-east-1">US East (N. Virginia)</option>
-                    <option value="us-east-2">US East (Ohio)</option>
-                    <option value="us-west-2">US West (Oregon)</option>
-                    <option value="sa-east-1">South America (São Paulo)</option>
-                    <option value="eu-west-1">Europe (Ireland)</option>
-                  </datalist>
-                </div>
-                <div class="form-group flex-2">
-                  <label for="input-dynamo-endpoint">Endpoint Customizado (Opcional)</label>
-                  <input type="text" id="input-dynamo-endpoint" placeholder="ex: http://dynamodb-local:8000 (deixe vazio para AWS Nuvem)" />
-                </div>
+            <div class="grid-2e grid-wide">
+              <div class="field">
+                <label for="input-dynamo-endpoint">Endpoint personalizado <span class="opt-t">· opcional</span></label>
+                <input type="text" id="input-dynamo-endpoint" class="input mono" placeholder="Vazio para AWS" />
               </div>
-
-              <!-- Atalhos Rápidos de Conexão -->
-              <div class="presets-row">
-                <span class="preset-label">Atalhos de Endpoint:</span>
-                <button type="button" class="btn-chip" id="preset-dynamo-aws">☁️ AWS Nuvem</button>
-                <button type="button" class="btn-chip" id="preset-dynamo-docker">🐳 Docker (dynamodb-local:8000)</button>
-                <button type="button" class="btn-chip" id="preset-dynamo-host">💻 Host (localhost:8000)</button>
-                <button type="button" class="btn-chip" id="preset-dynamo-localstack">⚡ LocalStack (:4566)</button>
+              <div class="field">
+                <label for="input-dynamo-region">Região</label>
+                <input type="text" id="input-dynamo-region" class="input mono" list="aws-regions-list" placeholder="us-east-1" value="us-east-1" />
+                <datalist id="aws-regions-list">
+                  <option value="us-east-1">US East (N. Virginia)</option>
+                  <option value="us-east-2">US East (Ohio)</option>
+                  <option value="us-west-2">US West (Oregon)</option>
+                  <option value="sa-east-1">South America (São Paulo)</option>
+                  <option value="eu-west-1">Europe (Ireland)</option>
+                </datalist>
               </div>
+            </div>
 
-              <div class="form-row">
-                <div class="form-group flex-1">
-                  <label for="input-dynamo-access-key">Access Key ID</label>
-                  <input type="text" id="input-dynamo-access-key" placeholder="AKIA... ou local" />
-                </div>
-                <div class="form-group flex-1">
-                  <div class="label-row">
-                    <label for="input-dynamo-secret-key">Secret Access Key</label>
-                    <button type="button" class="btn-link" id="btn-toggle-secret-visibility">👁️ Mostrar</button>
-                  </div>
-                  <input type="password" id="input-dynamo-secret-key" placeholder="••••••••" />
-                </div>
-                <div class="form-group flex-1">
-                  <label for="input-dynamo-session-token">Session Token (Opcional)</label>
-                  <input type="password" id="input-dynamo-session-token" placeholder="Opcional para SSO / IAM" />
-                </div>
+            <div class="divider"></div>
+
+            <div id="dynamo-env-indicator" class="alert info hidden">
+              <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3v4a1 1 0 0 0 1 1h4"></path><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"></path></svg>
+              <p>Credenciais vindas do <span class="mono">.env</span> <span class="muted mono" id="dynamo-env-key"></span>. O que você preencher aqui vale só para esta sessão.</p>
+            </div>
+
+            <div class="grid-2e">
+              <div class="field">
+                <label for="input-dynamo-access-key">Access Key ID</label>
+                <input type="text" id="input-dynamo-access-key" class="input mono" placeholder="AKIA… ou local" autocomplete="off" />
               </div>
-
-              <div class="drawer-actions">
-                <div class="helper-text">
-                  🔒 As credenciais são trafegadas exclusivamente via payload seguro e nunca gravadas em logs.
-                </div>
-                <button type="button" id="btn-dynamo-connect" class="btn-primary btn-sm">
-                  <span class="btn-spinner hidden" id="spinner-dynamo-connect"></span>
-                  <span>⚡ Conectar & Listar Tabelas</span>
-                </button>
-              </div>
-            </form>
-          </section>
-
-          <!-- Workbench Layout: Split View (Tabelas à esquerda, Itens/Variáveis à direita) -->
-          <div class="dynamo-workbench-grid">
-            <!-- Coluna Esquerda: Lista de Tabelas -->
-            <section class="card glass-card dynamo-tables-card">
-              <div class="card-header tables-header">
-                <div>
-                  <h2 class="card-title">Tabelas</h2>
-                  <p class="card-description" id="dynamo-tables-count">0 tabelas</p>
-                </div>
-                <button type="button" id="btn-refresh-dynamo-tables" class="btn-icon" title="Recarregar Tabelas">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
-                  </svg>
-                </button>
-              </div>
-
-              <div class="search-box">
-                <input type="text" id="input-search-tables" placeholder="Filtrar tabelas..." />
-              </div>
-
-              <div class="dynamo-tables-list" id="dynamo-tables-list">
-                <div class="empty-state mini-empty" id="empty-dynamo-tables">
-                  <p>Nenhuma tabela carregada. Clique em <strong>Conectar & Listar</strong> acima.</p>
-                </div>
-              </div>
-            </section>
-
-            <!-- Coluna Direita: Inspetor de Tabela & Variáveis / Itens -->
-            <section class="card glass-card dynamo-items-card">
-              <!-- Estado Vazio (Sem Tabela Selecionada) -->
-              <div id="dynamo-empty-selection" class="empty-state">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                  <line x1="3" y1="9" x2="21" y2="9"></line>
-                  <line x1="9" y1="21" x2="9" y2="9"></line>
-                </svg>
-                <h3>Selecione uma Tabela</h3>
-                <p>Escolha uma tabela na lista ao lado para inspecionar e alterar variáveis e atributos.</p>
-              </div>
-
-              <!-- Conteúdo da Tabela Selecionada -->
-              <div id="dynamo-table-view" class="dynamo-table-view hidden">
-                <div class="table-view-header">
-                  <div class="table-meta">
-                    <h2 class="active-table-title" id="dynamo-active-table-name">nome_da_tabela</h2>
-                    <div class="table-keys-row" id="dynamo-keys-badges">
-                      <!-- Badges PK e SK renderizadas dinamicamente -->
-                    </div>
-                  </div>
-
-                  <div class="table-actions-toolbar">
-                    <button type="button" id="btn-dynamo-scan" class="btn-secondary btn-sm">
-                      <span class="btn-spinner hidden" id="spinner-dynamo-scan"></span>
-                      <span>🔄 Scan Itens</span>
-                    </button>
-                    <button type="button" id="btn-dynamo-new-item" class="btn-primary btn-sm">
-                      <span>➕ Nova Variável / Item</span>
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Barra de Status e Contagem de Itens -->
-                <div class="table-stats-bar">
-                  <span id="dynamo-items-stat-count">Carregando itens...</span>
-                  <div class="table-filter-wrap">
-                    <input type="text" id="input-filter-items" placeholder="Filtrar itens na tela..." />
-                  </div>
-                </div>
-
-                <!-- Tabela de Dados e Atributos -->
-                <div class="items-table-wrapper" id="dynamo-items-table-wrapper">
-                  <table class="dynamo-data-table" id="dynamo-data-table">
-                    <thead id="dynamo-table-head">
-                      <!-- Cabeçalhos de atributos dinâmicos -->
-                    </thead>
-                    <tbody id="dynamo-table-body">
-                      <!-- Linhas de itens dinâmicas -->
-                    </tbody>
-                  </table>
-                </div>
-
-                <!-- Botão de Paginação / Carregar Mais -->
-                <div class="pagination-footer hidden" id="dynamo-pagination-footer">
-                  <button type="button" id="btn-dynamo-load-more" class="btn-secondary btn-sm">
-                    Carregar Mais Itens
+              <div class="field">
+                <label for="input-dynamo-secret-key">Secret Access Key</label>
+                <div class="affix">
+                  <input type="password" id="input-dynamo-secret-key" class="input mono" autocomplete="off" />
+                  <button type="button" class="iconbtn" id="btn-toggle-secret-visibility" aria-label="Mostrar secret" title="Mostrar secret">
+                    <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                   </button>
                 </div>
               </div>
-            </section>
-          </div>
-
-          <!-- Modal de Edição de Variáveis e Atributos do Item -->
-          <div id="modal-dynamo-item" class="modal-backdrop hidden">
-            <div class="modal-card modal-card-large">
-              <div class="modal-header-row">
-                <div>
-                  <h3 class="modal-title" id="modal-dynamo-title">Editar Variáveis do Item</h3>
-                  <p class="modal-subtitle" id="modal-dynamo-subtitle">Altere valores e adicione variáveis</p>
-                </div>
-                <div class="modal-tabs">
-                  <button type="button" class="tab-btn active" id="tab-btn-visual">Visual (Atributos)</button>
-                  <button type="button" class="tab-btn" id="tab-btn-json">JSON Raw</button>
-                </div>
-              </div>
-
-              <!-- Alerta de Chave Primária -->
-              <div class="pk-notice-banner" id="pk-notice-banner">
-                ℹ️ <strong>Chaves Primárias:</strong> Os valores de chave (PK/SK) definem a identidade do item.
-              </div>
-
-              <!-- Painel 1: Editor Visual de Variáveis / Atributos -->
-              <div id="panel-dynamo-visual" class="modal-tab-panel active">
-                <div class="attributes-list" id="dynamo-attributes-list">
-                  <!-- Linhas de atributos (Chave, Tipo, Valor, Remover) geradas pelo JS -->
-                </div>
-                <div class="add-attribute-row">
-                  <button type="button" id="btn-add-attribute" class="btn-secondary btn-sm">
-                    ➕ Adicionar Variável / Atributo
-                  </button>
-                </div>
-              </div>
-
-              <!-- Painel 2: Editor JSON Raw -->
-              <div id="panel-dynamo-json" class="modal-tab-panel hidden">
-                <div class="json-editor-container">
-                  <textarea id="textarea-dynamo-json" class="json-textarea" spellcheck="false" placeholder="{\n  \"pk\": \"valor\"\n}"></textarea>
-                  <div class="json-validation-bar" id="json-validation-bar">
-                    <span class="json-status-dot valid"></span>
-                    <span id="json-validation-msg">JSON válido</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="modal-actions">
-                <button type="button" class="btn-secondary" id="btn-modal-cancel-dynamo">Cancelar</button>
-                <button type="button" class="btn-primary" id="btn-modal-save-dynamo">
-                  <span class="btn-spinner hidden" id="spinner-save-dynamo"></span>
-                  <span>💾 Salvar no DynamoDB</span>
-                </button>
-              </div>
             </div>
-          </div>
-
-          <!-- Modal de Exclusão de Item DynamoDB -->
-          <div id="modal-dynamo-delete" class="modal-backdrop hidden">
-            <div class="modal-card">
-              <h3 class="modal-title">Excluir Item do DynamoDB?</h3>
-              <p class="modal-text">Você tem certeza que deseja excluir o item com a chave <strong id="modal-dynamo-delete-key">-</strong>? Esta ação não pode ser desfeita.</p>
-              <div class="modal-actions">
-                <button type="button" class="btn-secondary" id="btn-modal-cancel-delete-dynamo">Cancelar</button>
-                <button type="button" class="btn-danger" id="btn-modal-confirm-delete-dynamo">Excluir Item</button>
-              </div>
+            <div class="field">
+              <label for="input-dynamo-session-token">Session Token <span class="opt-t">· opcional</span></label>
+              <input type="password" id="input-dynamo-session-token" class="input mono" placeholder="Só para credenciais temporárias (STS)" autocomplete="off" />
             </div>
-          </div>
+
+            <div class="alert err hidden" id="dynamo-connect-error" role="alert">
+              <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4M12 16h.01"></path></svg>
+              <p id="dynamo-connect-error-text"></p>
+            </div>
+
+            <div>
+              <button type="button" id="btn-dynamo-connect" class="btn btn-primary btn-lg">
+                <svg class="i spin hidden" id="spinner-dynamo-connect" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.2-8.56"></path></svg>
+                Conectar e listar tabelas
+              </button>
+            </div>
+          </form>
         </div>
 
+        <!-- Workbench: tabelas à esquerda, itens ao centro, editor à direita -->
+        <div class="ddb hidden" id="dynamo-workbench">
+          <nav class="tables" aria-label="Tabelas">
+            <div class="tables-h">
+              <div class="hd">
+                <b>Tabelas</b>
+                <span class="count" id="dynamo-tables-count">0</span>
+                <button type="button" id="btn-refresh-dynamo-tables" class="iconbtn xs" aria-label="Recarregar tabelas" title="Recarregar tabelas">
+                  <svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"></path><path d="M21 3v5h-5"></path></svg>
+                </button>
+              </div>
+              <div class="affix lead">
+                <svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+                <input type="text" id="input-search-tables" class="input" placeholder="Filtrar tabelas" aria-label="Filtrar tabelas" />
+              </div>
+            </div>
+            <div class="tlist" id="dynamo-tables-list"></div>
+          </nav>
+
+          <section class="work" aria-label="Itens da tabela">
+            <!-- Nenhuma tabela selecionada -->
+            <div id="dynamo-empty-selection" class="empty center">
+              <div class="ei"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18M3 15h18M9 3v18"></path></svg></div>
+              <h3>Nenhuma tabela selecionada</h3>
+              <p>Escolha uma tabela na lista à esquerda para ver e editar os itens. Use o filtro para achar pelo nome.</p>
+            </div>
+
+            <!-- Tabela selecionada -->
+            <div id="dynamo-table-view" class="table-view hidden">
+              <div class="work-h">
+                <div class="keys" id="dynamo-keys-badges"></div>
+                <span class="status" id="dynamo-items-total"></span>
+                <span class="spacer"></span>
+                <div class="affix lead">
+                  <svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+                  <input type="text" id="input-filter-items" class="input" placeholder="Filtrar itens carregados" aria-label="Filtrar itens carregados" />
+                </div>
+                <button type="button" id="btn-dynamo-scan" class="iconbtn bordered" aria-label="Recarregar itens" title="Recarregar itens (scan)">
+                  <svg class="i" id="icon-dynamo-scan" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"></path><path d="M21 3v5h-5"></path></svg>
+                </button>
+                <button type="button" id="btn-dynamo-new-item" class="btn btn-primary">
+                  <svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+                  Novo item
+                </button>
+              </div>
+
+              <div class="gridbox" id="dynamo-items-table-wrapper" tabindex="0" aria-label="Grade de itens, role horizontalmente para ver mais atributos">
+                <table class="grid" id="dynamo-data-table">
+                  <thead id="dynamo-table-head"></thead>
+                  <tbody id="dynamo-table-body"></tbody>
+                </table>
+                <div class="empty hidden" id="dynamo-items-empty">
+                  <h3 id="dynamo-items-empty-title">Tabela vazia</h3>
+                  <p id="dynamo-items-empty-text">Clique em <b>Novo item</b> para criar o primeiro.</p>
+                </div>
+              </div>
+
+              <div class="grid-foot">
+                <span id="dynamo-items-stat-count">Carregando itens…</span>
+                <span class="spacer"></span>
+                <button type="button" id="btn-dynamo-load-more" class="btn btn-sm hidden">Carregar mais</button>
+              </div>
+            </div>
+          </section>
+
+          <!-- Editor de item -->
+          <aside class="panel hidden" id="modal-dynamo-item" aria-label="Editor de item">
+            <div class="panel-h">
+              <div>
+                <h2 id="modal-dynamo-title">Editar item</h2>
+                <div class="sub" id="modal-dynamo-subtitle"></div>
+              </div>
+              <button type="button" class="iconbtn" id="btn-close-dynamo-editor" aria-label="Fechar editor (Esc)" title="Fechar (Esc)">
+                <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+              </button>
+            </div>
+            <div class="tabs" role="tablist">
+              <button type="button" role="tab" id="tab-btn-visual" aria-selected="true" aria-controls="panel-dynamo-visual">Visual</button>
+              <button type="button" role="tab" id="tab-btn-json" aria-selected="false" aria-controls="panel-dynamo-json">JSON</button>
+              <span class="spacer"></span>
+              <button type="button" class="link hidden" id="btn-format-json">Formatar</button>
+            </div>
+
+            <div class="panel-b">
+              <!-- Aba Visual -->
+              <div id="panel-dynamo-visual" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-visual">
+                <div class="alert warn" id="pk-notice-banner">
+                  <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path><path d="M12 9v4M12 17h.01"></path></svg>
+                  <p>PK e SK definem a identidade do item. Mudar o valor de uma delas cria um item novo; o original continua na tabela.</p>
+                </div>
+                <div class="attr head"><span>Atributo</span><span>Tipo</span><span>Valor</span><span></span></div>
+                <div class="attrs" id="dynamo-attributes-list"></div>
+                <div>
+                  <button type="button" id="btn-add-attribute" class="btn btn-ghost btn-sm">
+                    <svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+                    Adicionar atributo
+                  </button>
+                </div>
+              </div>
+
+              <!-- Aba JSON -->
+              <div id="panel-dynamo-json" class="tab-panel json hidden" role="tabpanel" aria-labelledby="tab-btn-json">
+                <textarea id="textarea-dynamo-json" class="code" spellcheck="false" aria-label="JSON do item"></textarea>
+                <div class="valid" id="json-validation-bar" role="status">
+                  <svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4M12 16h.01"></path></svg>
+                  <span id="json-validation-msg">JSON válido</span>
+                </div>
+                <p class="hint">As abas ficam sincronizadas: o que você muda aqui aparece na aba Visual assim que o JSON for válido.</p>
+              </div>
+            </div>
+
+            <div class="panel-f">
+              <span class="status hidden" id="dynamo-editor-status">
+                <span class="dot warn" id="dynamo-editor-status-dot"></span>
+                <span id="dynamo-editor-status-text">Alterações não salvas</span>
+              </span>
+              <span class="spacer"></span>
+              <button type="button" class="btn btn-ghost" id="btn-modal-cancel-dynamo">Cancelar</button>
+              <button type="button" class="btn btn-primary" id="btn-modal-save-dynamo">
+                <svg class="i spin hidden" id="spinner-save-dynamo" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.2-8.56"></path></svg>
+                Salvar item
+              </button>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal: excluir banco clonado -->
+  <div id="modal-delete" class="scrim hidden">
+    <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="modal-delete-title" aria-describedby="modal-delete-desc">
+      <div class="modal-b">
+        <div class="mic"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"></path></svg></div>
+        <h2 id="modal-delete-title">Excluir banco <span id="modal-delete-target-name"></span>?</h2>
+        <p id="modal-delete-desc">O banco e todos os dados serão apagados do Postgres de destino. Essa ação não pode ser desfeita.</p>
+        <div class="field">
+          <label for="input-delete-confirm">Digite <span class="mono" id="modal-delete-confirm-name"></span> para confirmar</label>
+          <input type="text" id="input-delete-confirm" class="input mono" autocomplete="off" spellcheck="false" />
+        </div>
+      </div>
+      <div class="modal-f">
+        <button type="button" class="btn btn-ghost" id="btn-modal-cancel">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="btn-modal-confirm-delete" disabled>Excluir banco</button>
       </div>
     </div>
   </div>
 
-  <!-- Toast Notification Global -->
-  <div id="toast" class="toast hidden"></div>
+  <!-- Modal: excluir item do DynamoDB -->
+  <div id="modal-dynamo-delete" class="scrim hidden">
+    <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="modal-dynamo-delete-title" aria-describedby="modal-dynamo-delete-desc">
+      <div class="modal-b">
+        <div class="mic"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"></path></svg></div>
+        <h2 id="modal-dynamo-delete-title">Excluir este item?</h2>
+        <p id="modal-dynamo-delete-desc">O item será removido de <b id="modal-dynamo-delete-table"></b>. Essa ação não pode ser desfeita.</p>
+        <div class="keys" id="modal-dynamo-delete-key"></div>
+      </div>
+      <div class="modal-f">
+        <button type="button" class="btn btn-ghost" id="btn-modal-cancel-delete-dynamo">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="btn-modal-confirm-delete-dynamo">Excluir item</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast global -->
+  <div id="toast" class="toast hidden" role="status">
+    <svg class="i" id="toast-icon" viewBox="0 0 24 24" aria-hidden="true"></svg>
+    <span id="toast-text"></span>
+    <button type="button" class="iconbtn" id="btn-toast-close" aria-label="Fechar notificação">
+      <svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+    </button>
+  </div>
 
   <!-- Scripts -->
   <script src="app.js"></script>

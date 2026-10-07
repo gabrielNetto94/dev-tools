@@ -1,6 +1,6 @@
-# DBLab Suite 🚀
+# DEVinho Suite 🍷
 
-Suite web moderna, rápida e leve para desenvolvimento de banco de dados, contendo dois módulos principais:
+Suite web moderna, rápida e estilizada com a identidade **DEVinho** para desenvolvimento de bancos de dados, contendo dois módulos principais:
 1. **🐘 Postgres Cloner**: Seleção e clonagem rápida de bancos de dados PostgreSQL por streaming em memória (`pg_dump | pg_restore`) e forks instantâneos via `TEMPLATE`.
 2. **⚡ DynamoDB Workbench**: Interface inspirada no NoSQL Workbench para conectar a contas AWS Cloud ou DynamoDB Local, explorar tabelas, listar itens e inspecionar/editar variáveis e atributos em tempo real (via formulário visual ou JSON raw).
 

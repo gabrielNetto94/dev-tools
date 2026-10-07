@@ -1,0 +1,65 @@
+services:
+  # 1. PostgreSQL Local (Onde os bancos e clones são criados e hospedados)
+  postgres:
+    image: postgres:18-alpine
+    container_name: cloner_postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432" # Porta padrão para conectar no DBeaver, pgAdmin, psql, etc.
+    environment:
+      POSTGRES_USER: ${TARGET_PG_USER:-postgres}
+      POSTGRES_PASSWORD: ${TARGET_PG_PASSWORD:-postgres}
+      POSTGRES_DB: postgres
+    volumes:
+      # PG 18 images keep data under /var/lib/postgresql/18/docker, so mount the parent dir.
+      # New volume name: the old `pg_data` holds PG 16 data and is incompatible.
+      - pg_data18:/var/lib/postgresql
+      - ./init-test-db:/docker-entrypoint-initdb.d:ro
+
+  # 2. Interface Web e Motor de Clonagem por Streaming
+  cloner-ui:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: cloner_ui
+    restart: unless-stopped
+    ports:
+      - "3000:3000" # Acesse a UI em: http://localhost:3000
+    environment:
+      PORT: 3000
+      # Destino dos clones
+      TARGET_PG_HOST: postgres
+      TARGET_PG_PORT: 5432
+      TARGET_PG_USER: ${TARGET_PG_USER:-postgres}
+      TARGET_PG_PASSWORD: ${TARGET_PG_PASSWORD:-postgres}
+      TARGET_PG_DATABASE: postgres
+      HOST_PORT: 5432
+      # Servidor de Origem padrão: host.docker.internal:5432
+      SOURCE_PG_HOST: ${SOURCE_PG_HOST:-host.docker.internal}
+      SOURCE_PG_PORT: ${SOURCE_PG_PORT:-5432}
+      SOURCE_PG_USER: ${SOURCE_PG_USER:-postgres}
+      SOURCE_PG_PASSWORD: ${SOURCE_PG_PASSWORD:-postgres}
+      # DynamoDB Workbench Configurações
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-local}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-local}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
+      DYNAMODB_ENDPOINT: ${DYNAMODB_ENDPOINT:-http://dynamodb-local:8000}
+    extra_hosts:
+      # Permite que o container alcance a máquina host via host.docker.internal
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - postgres
+      - dynamodb-local
+
+  # 3. DynamoDB Local (Opcional, para testes locais e desenvolvimento sem conta AWS)
+  dynamodb-local:
+    image: amazon/dynamodb-local:latest
+    container_name: cloner_dynamodb
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    command: "-jar DynamoDBLocal.jar -sharedDb -inMemory"
+
+volumes:
+  pg_data18:

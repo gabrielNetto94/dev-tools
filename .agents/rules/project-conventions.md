@@ -6,5 +6,6 @@
 - Preserve existing comments and docstrings unrelated to your change.
 - Never commit `.env`; keep `.env.example` updated.
 - Keep dependencies minimal; avoid adding packages without a clear need.
+- Any user-facing change must follow the design system in `.agents/skills/ui/SKILL.md` (tokens in `style.css`, wine as the only accent, no emoji, existing components first), whichever agent makes it.
 
 - Run the `docs` agent at the end of every behavior-changing task to keep README and agents current.

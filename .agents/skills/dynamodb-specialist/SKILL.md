@@ -10,6 +10,7 @@ description: DynamoDB and NoSQL specialist for dblab. Use for DynamoDB operation
 - Uses `@aws-sdk/client-dynamodb` and `@aws-sdk/lib-dynamodb` (`DynamoDBDocumentClient`).
 - Supports both AWS Cloud (Region, Access Key, Secret Key, Session Token) and local endpoints (`http://localhost:8000` or `http://localstack:4566`).
 - Credentials fallback to server environment (`AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `DYNAMODB_ENDPOINT`).
+- Last connection settings are persisted in browser `localStorage` (`dblab_dynamo_connection`) and restored automatically on load.
 
 ## Guidelines
 - **Credentials & Security**: Never send AWS credentials via GET query parameters. Always use POST request bodies. Never log secret keys to console or return them in plain text.

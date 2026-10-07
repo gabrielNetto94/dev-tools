@@ -55,7 +55,7 @@ O fluxo fica à esquerda em três passos; log, resultado e clones ficam à direi
      - **Docker**: conecta ao container `dynamodb-local` (`http://dynamodb-local:8000`).
      - **Host**: conecta ao DynamoDB local na máquina host (`http://localhost:8000`).
      - **LocalStack**: conecta ao endpoint LocalStack (`http://localhost:4566`).
-   - Depois de conectar, o painel some e fica só o status no topo; o botão **"Conexão"** reabre.
+   - Depois de conectar, o painel some e fica só o status no topo; o botão **"Conexão"** reabre. A última conexão fica salva no navegador (`localStorage`) e reconecta automaticamente ao abrir o app.
 2. **Tabelas:**
    - Lista as tabelas com filtro por nome.
    - Mostra as chaves primárias da tabela aberta: **PK (Partition Key)** e **SK (Sort Key)**.

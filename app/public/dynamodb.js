@@ -27,6 +27,8 @@
     'preset-dynamo-localstack': { endpoint: 'http://localhost:4566', fallbackKey: 'test' },
   };
 
+  const DYNAMO_STORAGE_KEY = 'dblab_dynamo_connection';
+
   // Elementos do DOM - Conexão e Credenciais
   const titleDynamodb = document.getElementById('title-dynamodb');
   const dynamoStatusDot = document.getElementById('dynamo-status-dot');
@@ -156,7 +158,29 @@
     });
   }
 
-  // 1. Carregar Configuração Padrão do Servidor
+  function saveConnection() {
+    const creds = {
+      region: inputDynamoRegion.value.trim(),
+      endpoint: inputDynamoEndpoint.value.trim(),
+      accessKeyId: inputDynamoAccessKey.value.trim(),
+      secretAccessKey: inputDynamoSecretKey.value.trim(),
+      sessionToken: inputDynamoSessionToken.value.trim(),
+    };
+    try {
+      localStorage.setItem(DYNAMO_STORAGE_KEY, JSON.stringify(creds));
+    } catch (_) {}
+  }
+
+  function loadSavedConnection() {
+    try {
+      const raw = localStorage.getItem(DYNAMO_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // 1. Carregar Configuração Padrão do Servidor e Conexão Salva
   async function loadInitialConfig() {
     try {
       const res = await fetch('/api/dynamodb/config');
@@ -165,7 +189,6 @@
         state.isEnvConfigured = data.configuredViaEnv;
         if (data.defaultRegion) inputDynamoRegion.value = data.defaultRegion;
         if (data.defaultEndpoint) inputDynamoEndpoint.value = data.defaultEndpoint;
-        syncPresetChips();
 
         if (data.configuredViaEnv) {
           dynamoEnvIndicator.classList.remove('hidden');
@@ -174,6 +197,22 @@
       }
     } catch (err) {
       console.warn('Não foi possível carregar config inicial do DynamoDB:', err);
+    }
+
+    // Restaurar a última conexão salva pelo usuário (se houver)
+    const saved = loadSavedConnection();
+    if (saved) {
+      if (saved.region) inputDynamoRegion.value = saved.region;
+      if (saved.endpoint !== undefined) inputDynamoEndpoint.value = saved.endpoint;
+      if (saved.accessKeyId !== undefined) inputDynamoAccessKey.value = saved.accessKeyId;
+      if (saved.secretAccessKey !== undefined) inputDynamoSecretKey.value = saved.secretAccessKey;
+      if (saved.sessionToken !== undefined) inputDynamoSessionToken.value = saved.sessionToken;
+    }
+    syncPresetChips();
+
+    // Se temos conexão salva ou se está configurado via .env, conectar automaticamente
+    if (saved || state.isEnvConfigured) {
+      await connectAndListTables(true);
     }
   }
 
@@ -200,6 +239,7 @@
 
       state.tables = data.tables || [];
       state.isConnected = true;
+      saveConnection();
 
       // A tabela aberta pode não existir na nova conexão
       if (state.activeTable && !state.tables.includes(state.activeTable)) {
@@ -842,6 +882,8 @@
       btnToggleSecretVisibility.title = label;
     });
 
+    drawerDynamoCreds.addEventListener('change', saveConnection);
+
     // Atalhos de Endpoint
     Object.entries(PRESETS).forEach(([id, preset]) => {
       document.getElementById(id).addEventListener('click', () => {
@@ -853,13 +895,29 @@
           inputDynamoRegion.value = inputDynamoRegion.value || 'us-east-1';
         }
         syncPresetChips();
+        saveConnection();
       });
     });
-    inputDynamoEndpoint.addEventListener('input', syncPresetChips);
+    inputDynamoEndpoint.addEventListener('input', () => {
+      syncPresetChips();
+      saveConnection();
+    });
 
     // Conectar & Listar Tabelas
-    btnDynamoConnect.addEventListener('click', () => connectAndListTables(true));
+    btnDynamoConnect.addEventListener('click', () => {
+      saveConnection();
+      connectAndListTables(true);
+    });
     btnRefreshDynamoTables.addEventListener('click', () => connectAndListTables(false));
+
+    // Tecla Enter no formulário de conexão
+    document.getElementById('form-dynamo-creds')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        saveConnection();
+        connectAndListTables(true);
+      }
+    });
 
     // Filtrar Tabelas
     inputSearchTables.addEventListener('input', () => renderTablesList(state.tables));

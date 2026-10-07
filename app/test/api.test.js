@@ -66,6 +66,40 @@ describe('API', () => {
     assert.strictEqual(del.status, 200);
   });
 
+  test('POST /api/target/databases with local target succeeds and lists databases', async () => {
+    const res = await api('/api/target/databases', {
+      method: 'POST',
+      body: JSON.stringify({ targetServerMode: 'local' }),
+    });
+    assert.strictEqual(res.status, 200);
+    const data = await res.json();
+    assert.strictEqual(data.success, true);
+    assert.ok(Array.isArray(data.databases));
+    assert.ok(data.databases.some((d) => d.name === 'postgres'));
+  });
+
+  test('POST /api/target/databases with unreachable host returns 400', async () => {
+    const res = await api('/api/target/databases', {
+      method: 'POST',
+      body: JSON.stringify({
+        targetServerMode: 'custom',
+        targetHost: '127.0.0.1',
+        targetPort: 54329,
+      }),
+    });
+    assert.strictEqual(res.status, 400);
+    const data = await res.json();
+    assert.strictEqual(data.success, false);
+    assert.match(data.error, /Não foi possível conectar ao servidor/);
+  });
+
+  test('clone-stream with invalid targetDbName emits an error event', async () => {
+    const res = await api('/api/clone-stream?sourceDb=postgres&cloneName=bad-name!');
+    const text = await res.text();
+    assert.match(text, /event: error/);
+    assert.match(text, /letras, números e underline/);
+  });
+
   test('template clone validates sourceClone (known gap)', { todo: true }, async () => {
     const res = await api('/api/clones/template', {
       method: 'POST',

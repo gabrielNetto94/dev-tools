@@ -123,6 +123,113 @@ app.post('/api/source/databases', async (req, res) => {
   }
 });
 
+// Resolver configuração de conexão com o PostgreSQL de destino
+function resolveTargetServerConfig(params = {}) {
+  const mode = (params.targetServerMode || 'local').trim();
+
+  if (mode === 'source') {
+    const host = (params.sourceHost || DEFAULT_SOURCE_HOST).trim();
+    const port = parseInt(params.sourcePort || DEFAULT_SOURCE_PORT, 10);
+    const user = (params.sourceUser || DEFAULT_SOURCE_USER).trim();
+    const password = params.sourcePassword !== undefined ? params.sourcePassword : DEFAULT_SOURCE_PASSWORD;
+
+    return {
+      mode: 'source',
+      host,
+      port,
+      user,
+      password,
+      database: 'postgres',
+      clientHost: host === 'postgres' ? 'localhost' : host,
+      clientPort: port,
+    };
+  }
+
+  if (mode === 'custom') {
+    const host = (params.targetHost || DEFAULT_SOURCE_HOST).trim();
+    const port = parseInt(params.targetPort || DEFAULT_SOURCE_PORT, 10);
+    const user = (params.targetUser || DEFAULT_SOURCE_USER).trim();
+    const password = params.targetPassword !== undefined ? params.targetPassword : DEFAULT_SOURCE_PASSWORD;
+
+    return {
+      mode: 'custom',
+      host,
+      port,
+      user,
+      password,
+      database: 'postgres',
+      clientHost: host === 'postgres' ? 'localhost' : host,
+      clientPort: port,
+    };
+  }
+
+  // Padrão: Local (container cloner_postgres)
+  return {
+    mode: 'local',
+    host: TARGET_HOST,
+    port: TARGET_PORT,
+    user: TARGET_USER,
+    password: TARGET_PASSWORD,
+    database: TARGET_MAINTENANCE_DB,
+    clientHost: 'localhost',
+    clientPort: HOST_PORT,
+  };
+}
+
+function formatDbUrl(config, dbName) {
+  return `postgresql://${config.user}:${encodeURIComponent(config.password)}@${config.host}:${config.port}/${dbName}`;
+}
+
+function formatClientUrl(config, dbName) {
+  return `postgresql://${config.user}:${encodeURIComponent(config.password)}@${config.clientHost}:${config.clientPort}/${dbName}`;
+}
+
+// Listar todos os bancos disponíveis no Servidor de Destino (para poder selecionar e sobrescrever)
+app.post('/api/target/databases', async (req, res) => {
+  const targetConfig = resolveTargetServerConfig(req.body);
+
+  const client = new Client({
+    host: targetConfig.host,
+    port: targetConfig.port,
+    user: targetConfig.user,
+    password: targetConfig.password,
+    database: targetConfig.database,
+    connectionTimeoutMillis: 6000,
+  });
+
+  try {
+    await client.connect();
+    const query = `
+      SELECT 
+        datname AS name,
+        pg_size_pretty(pg_database_size(datname)) AS size_pretty,
+        pg_database_size(datname) AS size_bytes
+      FROM pg_database
+      WHERE datistemplate = false
+      ORDER BY datname ASC;
+    `;
+    const result = await client.query(query);
+    await client.end();
+
+    res.json({
+      success: true,
+      server: {
+        mode: targetConfig.mode,
+        host: targetConfig.host,
+        port: targetConfig.port,
+        user: targetConfig.user,
+      },
+      databases: result.rows,
+    });
+  } catch (err) {
+    try { await client.end(); } catch (_) {}
+    res.status(400).json({
+      success: false,
+      error: `Não foi possível conectar ao servidor de destino ${targetConfig.host}:${targetConfig.port}: ${err.message}`,
+    });
+  }
+});
+
 // Testar conexão detalhada com um banco específico de origem
 app.post('/api/test-connection', async (req, res) => {
   let { url, host, port, user, password, database } = req.body;
@@ -262,7 +369,14 @@ app.get('/api/clone-stream', async (req, res) => {
     sourcePort,
     sourceUser,
     sourcePassword,
-    cloneName, 
+    cloneName,
+    targetDbName,
+    targetServerMode,
+    targetHost,
+    targetPort,
+    targetUser,
+    targetPassword,
+    isExistingDb,
     schemaOnly, 
     dropIfExists 
   } = req.query;
@@ -277,63 +391,92 @@ app.get('/api/clone-stream', async (req, res) => {
     res.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`);
   };
 
+  const sHost = (sourceHost || DEFAULT_SOURCE_HOST).trim();
+  const sPort = parseInt(sourcePort || DEFAULT_SOURCE_PORT, 10);
+  const sUser = (sourceUser || DEFAULT_SOURCE_USER).trim();
+  const sPass = sourcePassword !== undefined ? sourcePassword : DEFAULT_SOURCE_PASSWORD;
+
   // Se o usuário selecionou o banco (sourceDb), constrói a URL automaticamente
-  if (!sourceUrl && sourceDb) {
-    const sHost = (sourceHost || DEFAULT_SOURCE_HOST).trim();
-    const sPort = parseInt(sourcePort || DEFAULT_SOURCE_PORT, 10);
-    const sUser = (sourceUser || DEFAULT_SOURCE_USER).trim();
-    const sPass = sourcePassword !== undefined ? sourcePassword : DEFAULT_SOURCE_PASSWORD;
-    sourceUrl = `postgresql://${sUser}:${encodeURIComponent(sPass)}@${sHost}:${sPort}/${sourceDb.trim()}`;
+  const cleanSourceDb = (sourceDb || '').trim();
+  if (!sourceUrl && cleanSourceDb) {
+    sourceUrl = `postgresql://${sUser}:${encodeURIComponent(sPass)}@${sHost}:${sPort}/${cleanSourceDb}`;
   }
 
-  if (!sourceUrl || !cloneName) {
-    sendEvent('error', { message: 'Selecione um banco de origem e digite o nome do clone.' });
+  const chosenDbName = (targetDbName || cloneName || '').trim();
+
+  if (!sourceUrl || !chosenDbName) {
+    sendEvent('error', { message: 'Selecione um banco de origem e informe o banco de destino.' });
     return res.end();
   }
 
-  const cleanCloneName = cloneName.trim();
-  if (!/^[a-zA-Z0-9_]+$/.test(cleanCloneName)) {
-    sendEvent('error', { message: 'Nome do clone só pode conter letras, números e underline (_).' });
+  if (!/^[a-zA-Z0-9_]+$/.test(chosenDbName)) {
+    sendEvent('error', { message: 'Nome do banco de destino só pode conter letras, números e underline (_).' });
     return res.end();
   }
+
+  const targetConfig = resolveTargetServerConfig(req.query);
+
+  const isSameServer = targetConfig.mode === 'source' || 
+    (targetConfig.host === sHost && targetConfig.port === sPort);
+  const isExactSameDb = isSameServer && (cleanSourceDb === chosenDbName);
 
   const startTime = Date.now();
-  sendEvent('log', { message: `🚀 Iniciando processo de clonagem para o banco: ${cleanCloneName}...` });
+  sendEvent('log', { message: `🚀 Iniciando processo de clonagem para o banco: ${chosenDbName} (Servidor: ${targetConfig.mode})...` });
 
-  // 1. Preparar banco de destino
+  // 1. Conectar e preparar o banco no servidor de destino
+  const targetClient = new Client({
+    host: targetConfig.host,
+    port: targetConfig.port,
+    user: targetConfig.user,
+    password: targetConfig.password,
+    database: targetConfig.database,
+    connectionTimeoutMillis: 6000,
+  });
+
   try {
-    sendEvent('log', { message: '✓ Conectado ao servidor PostgreSQL de destino.' });
+    await targetClient.connect();
+    sendEvent('log', { message: `✓ Conectado ao servidor PostgreSQL de destino (${targetConfig.host}:${targetConfig.port}).` });
 
-    // Verificar se já existe
-    const checkRes = await targetPool.query(
-      'SELECT 1 FROM pg_database WHERE datname = $1',
-      [cleanCloneName]
-    );
+    if (isExactSameDb) {
+      sendEvent('log', { message: `ℹ️ O banco de destino é o próprio banco de origem '${chosenDbName}'. O streaming aplicará restauração com limpeza (--clean).` });
+    } else {
+      // Verificar se já existe no destino
+      const checkRes = await targetClient.query(
+        'SELECT 1 FROM pg_database WHERE datname = $1',
+        [chosenDbName]
+      );
 
-    if (checkRes.rows.length > 0) {
-      if (dropIfExists === 'true') {
-        sendEvent('log', { message: `⚠️ Banco ${cleanCloneName} já existia. Recriando...` });
-        await targetPool.query(`
-          SELECT pg_terminate_backend(pid) 
-          FROM pg_stat_activity 
-          WHERE datname = $1 AND pid <> pg_backend_pid();
-        `, [cleanCloneName]);
-        await targetPool.query(`DROP DATABASE "${cleanCloneName}";`);
+      if (checkRes.rows.length > 0) {
+        if (dropIfExists === 'true' || isExistingDb === 'true') {
+          sendEvent('log', { message: `⚠️ Banco '${chosenDbName}' já existia no destino. Derrubando conexões e recriando...` });
+          await targetClient.query(`
+            SELECT pg_terminate_backend(pid) 
+            FROM pg_stat_activity 
+            WHERE datname = $1 AND pid <> pg_backend_pid();
+          `, [chosenDbName]);
+          await targetClient.query(`DROP DATABASE "${chosenDbName}";`);
+          sendEvent('log', { message: `📁 Criando novo banco de dados '${chosenDbName}'...` });
+          await targetClient.query(`CREATE DATABASE "${chosenDbName}";`);
+        } else {
+          throw new Error(`Um banco com o nome '${chosenDbName}' já existe no destino. Marque a opção de sobrescrever ou escolha outro nome.`);
+        }
       } else {
-        throw new Error(`Um banco com o nome '${cleanCloneName}' já existe. Marque a opção de sobrescrever ou escolha outro nome.`);
+        sendEvent('log', { message: `📁 Criando novo banco de dados '${chosenDbName}'...` });
+        await targetClient.query(`CREATE DATABASE "${chosenDbName}";`);
       }
+      sendEvent('log', { message: `✓ Banco '${chosenDbName}' pronto no destino. Iniciando stream de dados...` });
     }
-
-    sendEvent('log', { message: `📁 Criando novo banco de dados '${cleanCloneName}'...` });
-    await targetPool.query(`CREATE DATABASE "${cleanCloneName}";`);
-    sendEvent('log', { message: `✓ Banco '${cleanCloneName}' criado. Iniciando stream de dados...` });
   } catch (err) {
+    try { await targetClient.end(); } catch (_) {}
     sendEvent('error', { message: 'Falha na preparação do banco de destino: ' + err.message });
     return res.end();
+  } finally {
+    try { await targetClient.end(); } catch (_) {}
   }
 
   // 2. Executar streaming: pg_dump | pg_restore
-  const targetDbUrl = getTargetDbUrl(cleanCloneName);
+  const targetDbUrl = formatDbUrl(targetConfig, chosenDbName);
+  const clientUrl = formatClientUrl(targetConfig, chosenDbName);
 
   const dumpArgs = [
     `--dbname=${sourceUrl.trim()}`,
@@ -353,9 +496,13 @@ app.get('/api/clone-stream', async (req, res) => {
     `--dbname=${targetDbUrl}`,
     '--no-owner',
     '--no-privileges',
-    '--exit-on-error',
     '--verbose',
   ];
+  if (isExactSameDb) {
+    restoreArgs.push('--clean', '--if-exists');
+  } else {
+    restoreArgs.push('--exit-on-error');
+  }
 
   sendEvent('log', { message: '⚡ Conectando pipe de streaming na memória (pg_dump | pg_restore)...' });
 
@@ -395,13 +542,13 @@ app.get('/api/clone-stream', async (req, res) => {
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
 
     if (code === 0 && !hasError) {
-      const clientUrl = getClientDbUrl(cleanCloneName);
       sendEvent('log', { message: `🎉 Clonagem concluída com sucesso em ${duration}s!` });
       sendEvent('success', {
-        cloneName: cleanCloneName,
+        cloneName: chosenDbName,
         duration: duration,
         connectionString: clientUrl,
         psqlCommand: `psql "${clientUrl}"`,
+        targetServer: targetConfig.mode,
       });
     } else {
       sendEvent('error', {

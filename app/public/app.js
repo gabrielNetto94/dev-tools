@@ -72,6 +72,26 @@ document.addEventListener('DOMContentLoaded', () => {
   const presetLocalTest = document.getElementById('preset-local-test');
   const presetHostMachine = document.getElementById('preset-host-machine');
 
+  // Elementos do DOM - Destino (Servidor e Banco)
+  const targetServerSelector = document.getElementById('target-server-selector');
+  const targetServerSummary = document.getElementById('target-server-summary');
+  const drawerTargetServer = document.getElementById('drawer-target-server');
+  const inputTargetHost = document.getElementById('input-target-host');
+  const inputTargetPort = document.getElementById('input-target-port');
+  const inputTargetUser = document.getElementById('input-target-user');
+  const inputTargetPass = document.getElementById('input-target-pass');
+  const btnConnectTargetServer = document.getElementById('btn-connect-target-server');
+
+  const targetDbModeSelector = document.getElementById('target-db-mode-selector');
+  const sectionTargetNewDb = document.getElementById('section-target-new-db');
+  const sectionTargetExistingDb = document.getElementById('section-target-existing-db');
+  const selectTargetDb = document.getElementById('select-target-db');
+  const btnRefreshTargetDbs = document.getElementById('btn-refresh-target-dbs');
+  const selectCloneModeExisting = document.getElementById('select-clone-mode-existing');
+  const warningTargetOverwrite = document.getElementById('warning-target-overwrite');
+  const warningOverwriteTitle = document.getElementById('warning-overwrite-title');
+  const warningOverwriteDesc = document.getElementById('warning-overwrite-desc');
+
   // Formulário de Clone
   const inputCloneName = document.getElementById('input-clone-name');
   const btnSuggestName = document.getElementById('btn-suggest-name');
@@ -107,6 +127,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // Estado atual do servidor de origem (sempre host.docker.internal:5432)
   let currentSourceServer = {
     host: 'host.docker.internal',
+    port: '5432',
+    user: 'postgres',
+    password: 'postgres',
+  };
+
+  // Estado do servidor e banco de destino
+  let currentTargetServerMode = 'local'; // 'local' | 'source' | 'custom'
+  let currentTargetDbMode = 'new'; // 'new' | 'existing'
+  let customTargetServer = {
+    host: 'localhost',
     port: '5432',
     user: 'postgres',
     password: 'postgres',
@@ -235,6 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Sugere nome do clone automaticamente com base no banco selecionado
     inputCloneName.value = generateCloneName(`clone_${dbName}`);
+    updateTargetOverwriteWarning();
   }
 
   selectSourceDb.addEventListener('change', onSourceDbSelected);
@@ -258,6 +289,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Salvar / carregar presets do servidor de destino customizado
+  const savedCustomTarget = localStorage.getItem('pg_cloner_target_custom');
+  if (savedCustomTarget) {
+    try {
+      customTargetServer = { ...customTargetServer, ...JSON.parse(savedCustomTarget) };
+      if (inputTargetHost) inputTargetHost.value = customTargetServer.host;
+      if (inputTargetPort) inputTargetPort.value = customTargetServer.port;
+      if (inputTargetUser) inputTargetUser.value = customTargetServer.user;
+      if (inputTargetPass) inputTargetPass.value = customTargetServer.password;
+    } catch {}
+  }
+
   btnConnectServer.addEventListener('click', async () => {
     currentSourceServer = {
       host: inputServerHost.value.trim() || 'host.docker.internal',
@@ -271,6 +314,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     showToast(`Conectando a ${currentSourceServer.host}...`);
     await loadSourceDatabases();
+    updateTargetServerSummary();
+    if (currentTargetServerMode === 'source' && currentTargetDbMode === 'existing') {
+      await loadTargetDatabases();
+    }
     drawerServerConfig.classList.add('hidden');
   });
 
@@ -279,12 +326,180 @@ document.addEventListener('DOMContentLoaded', () => {
     inputCloneName.value = generateCloneName(`clone_${dbName}`);
   });
 
-  // --- 4. Executar Clonagem por Streaming (SSE) ---
+  // --- 4. Configuração e Controle do Servidor de Destino ---
+  function updateTargetServerSummary() {
+    if (!targetServerSummary) return;
+    if (currentTargetServerMode === 'local') {
+      targetServerSummary.textContent = '🐳 Local Docker (Container cloner_postgres:5432)';
+    } else if (currentTargetServerMode === 'source') {
+      targetServerSummary.textContent = `🔗 Mesmo da Origem (${currentSourceServer.host}:${currentSourceServer.port})`;
+    } else if (currentTargetServerMode === 'custom') {
+      targetServerSummary.textContent = `⚙️ Personalizado (${customTargetServer.host}:${customTargetServer.port})`;
+    }
+  }
+
+  if (targetServerSelector) {
+    targetServerSelector.querySelectorAll('.segmented-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        targetServerSelector.querySelectorAll('.segmented-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentTargetServerMode = btn.dataset.targetMode || 'local';
+
+        if (currentTargetServerMode === 'custom') {
+          drawerTargetServer?.classList.remove('hidden');
+        } else {
+          drawerTargetServer?.classList.add('hidden');
+        }
+
+        updateTargetServerSummary();
+        updateTargetOverwriteWarning();
+
+        if (currentTargetDbMode === 'existing') {
+          await loadTargetDatabases();
+        }
+      });
+    });
+  }
+
+  if (btnConnectTargetServer) {
+    btnConnectTargetServer.addEventListener('click', async () => {
+      customTargetServer = {
+        host: inputTargetHost.value.trim() || 'localhost',
+        port: inputTargetPort.value.trim() || '5432',
+        user: inputTargetUser.value.trim() || 'postgres',
+        password: inputTargetPass.value,
+      };
+      localStorage.setItem('pg_cloner_target_custom', JSON.stringify(customTargetServer));
+      updateTargetServerSummary();
+      showToast(`Conectando ao servidor de destino ${customTargetServer.host}:${customTargetServer.port}...`);
+      if (currentTargetDbMode === 'existing') {
+        await loadTargetDatabases();
+      }
+      drawerTargetServer?.classList.add('hidden');
+    });
+  }
+
+  // --- 5. Modo de Banco de Destino (Novo vs Existente) ---
+  if (targetDbModeSelector) {
+    targetDbModeSelector.querySelectorAll('.segmented-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        targetDbModeSelector.querySelectorAll('.segmented-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentTargetDbMode = btn.dataset.dbMode || 'new';
+
+        if (currentTargetDbMode === 'new') {
+          sectionTargetNewDb?.classList.remove('hidden');
+          sectionTargetExistingDb?.classList.add('hidden');
+          if (inputCloneName) inputCloneName.required = true;
+          textBtnClone.textContent = 'Clonar Banco Selecionado';
+        } else {
+          sectionTargetNewDb?.classList.add('hidden');
+          sectionTargetExistingDb?.classList.remove('hidden');
+          if (inputCloneName) inputCloneName.required = false;
+          await loadTargetDatabases();
+        }
+      });
+    });
+  }
+
+  async function loadTargetDatabases() {
+    if (!selectTargetDb) return;
+    selectTargetDb.innerHTML = '<option value="" disabled selected>🔍 Buscando bancos no destino...</option>';
+    selectTargetDb.disabled = true;
+
+    const payload = {
+      targetServerMode: currentTargetServerMode,
+      sourceHost: currentSourceServer.host,
+      sourcePort: currentSourceServer.port,
+      sourceUser: currentSourceServer.user,
+      sourcePassword: currentSourceServer.password,
+      targetHost: customTargetServer.host,
+      targetPort: customTargetServer.port,
+      targetUser: customTargetServer.user,
+      targetPassword: customTargetServer.password,
+    };
+
+    try {
+      const res = await fetch('/api/target/databases', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.error);
+      }
+
+      const databases = data.databases || [];
+      if (databases.length === 0) {
+        selectTargetDb.innerHTML = '<option value="" disabled selected>Nenhum banco encontrado no servidor de destino</option>';
+        return;
+      }
+
+      selectTargetDb.innerHTML = '';
+      databases.forEach(db => {
+        const opt = document.createElement('option');
+        opt.value = db.name;
+        opt.textContent = `🗄️ ${db.name} (${db.size_pretty})`;
+        selectTargetDb.appendChild(opt);
+      });
+
+      const currentSource = selectSourceDb?.value;
+      if (currentSource && databases.some(d => d.name === currentSource)) {
+        selectTargetDb.value = currentSource;
+      } else {
+        selectTargetDb.selectedIndex = 0;
+      }
+
+      selectTargetDb.disabled = false;
+      updateTargetOverwriteWarning();
+    } catch (err) {
+      selectTargetDb.innerHTML = `<option value="" disabled selected>❌ Erro: ${err.message}</option>`;
+      showToast(`Erro ao listar bancos do destino: ${err.message}`, 4000);
+    } finally {
+      selectTargetDb.disabled = false;
+    }
+  }
+
+  function updateTargetOverwriteWarning() {
+    if (currentTargetDbMode !== 'existing' || !selectTargetDb) return;
+
+    const sourceDb = selectSourceDb?.value || '';
+    const targetDb = selectTargetDb.value || '';
+    if (!targetDb) return;
+
+    const isSameServer = (currentTargetServerMode === 'source') || 
+      (currentTargetServerMode === 'custom' && customTargetServer.host === currentSourceServer.host && customTargetServer.port === currentSourceServer.port);
+    const isExactSame = isSameServer && (sourceDb === targetDb);
+
+    if (isExactSame) {
+      warningTargetOverwrite?.classList.add('same-db');
+      if (warningOverwriteTitle) warningOverwriteTitle.textContent = `⚡ Clonando no próprio banco de origem '${targetDb}'`;
+      if (warningOverwriteDesc) warningOverwriteDesc.textContent = `Atenção: A cópia substituirá os dados do próprio banco selecionado na origem. Durante o streaming, os objetos serão limpos e restaurados (--clean).`;
+      textBtnClone.textContent = `Sobrescrever Próprio Banco '${targetDb}'`;
+    } else {
+      warningTargetOverwrite?.classList.remove('same-db');
+      if (warningOverwriteTitle) warningOverwriteTitle.textContent = `Atenção: Substituição no destino ('${targetDb}')`;
+      if (warningOverwriteDesc) warningOverwriteDesc.textContent = `O banco '${targetDb}' no servidor de destino terá seus dados recriados e sobrescritos com o dump de '${sourceDb}'.`;
+      textBtnClone.textContent = `Sobrescrever '${targetDb}' no Destino`;
+    }
+  }
+
+  selectTargetDb?.addEventListener('change', updateTargetOverwriteWarning);
+  btnRefreshTargetDbs?.addEventListener('click', () => {
+    loadTargetDatabases();
+    showToast('Lista de bancos do destino atualizada!');
+  });
+
+  // --- 6. Executar Clonagem por Streaming (SSE) ---
   formClone.addEventListener('submit', () => {
     const sourceDb = selectSourceDb.value;
-    const cloneName = inputCloneName.value.trim();
-    const schemaOnly = selectCloneMode.value === 'schema';
-    const dropIfExists = checkOverwrite.checked;
+    const isExisting = currentTargetDbMode === 'existing';
+    const cloneName = isExisting ? selectTargetDb.value : inputCloneName.value.trim();
+    const schemaOnly = isExisting 
+      ? selectCloneModeExisting.value === 'schema' 
+      : selectCloneMode.value === 'schema';
+    const dropIfExists = isExisting ? true : checkOverwrite.checked;
 
     if (!sourceDb) {
       showToast('Por favor, selecione um banco de dados de origem.');
@@ -293,27 +508,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (!cloneName) {
-      showToast('Por favor, digite o nome do clone.');
-      inputCloneName.focus();
+      showToast(isExisting ? 'Por favor, selecione o banco de destino a sobrescrever.' : 'Por favor, digite o nome do clone.');
+      if (isExisting) selectTargetDb.focus();
+      else inputCloneName.focus();
       return;
     }
 
     if (!/^[a-zA-Z0-9_]+$/.test(cloneName)) {
-      showToast('O nome do clone só pode conter letras, números e underlines.');
+      showToast('O nome do banco só pode conter letras, números e underlines.');
       return;
     }
 
     // Travar botão
     btnSubmitClone.disabled = true;
     spinnerClone.classList.remove('hidden');
-    textBtnClone.textContent = `Clonando '${sourceDb}'...`;
+    textBtnClone.textContent = isExisting ? `Sobrescrevendo '${cloneName}'...` : `Clonando '${sourceDb}'...`;
 
     terminalStatusBadge.textContent = 'Executando';
     terminalStatusBadge.className = 'terminal-badge running';
     successBanner.classList.add('hidden');
 
     clearLogs();
-    appendLog(`[${new Date().toLocaleTimeString()}] Iniciando clonagem do banco '${sourceDb}' para '${cloneName}'...`, 'system');
+    appendLog(`[${new Date().toLocaleTimeString()}] Iniciando processo de cópia de '${sourceDb}' para '${cloneName}' (Servidor: ${currentTargetServerMode})...`, 'system');
 
     if (activeEventSource) {
       activeEventSource.close();
@@ -326,6 +542,13 @@ document.addEventListener('DOMContentLoaded', () => {
       sourceUser: currentSourceServer.user,
       sourcePassword: currentSourceServer.password,
       cloneName,
+      targetDbName: cloneName,
+      targetServerMode: currentTargetServerMode,
+      targetHost: customTargetServer.host,
+      targetPort: customTargetServer.port,
+      targetUser: customTargetServer.user,
+      targetPassword: customTargetServer.password,
+      isExistingDb: String(isExisting),
       schemaOnly: String(schemaOnly),
       dropIfExists: String(dropIfExists),
     });
@@ -346,13 +569,17 @@ document.addEventListener('DOMContentLoaded', () => {
       successConnString.textContent = data.connectionString;
       successBanner.classList.remove('hidden');
 
-      showToast(`🎉 Clone '${data.cloneName}' criado com sucesso!`);
+      showToast(`🎉 Processo para '${data.cloneName}' concluído com sucesso!`);
       loadClones();
 
       // Resetar estado do botão
       btnSubmitClone.disabled = false;
       spinnerClone.classList.add('hidden');
-      textBtnClone.textContent = 'Clonar Banco Selecionado';
+      if (currentTargetDbMode === 'existing') {
+        updateTargetOverwriteWarning();
+      } else {
+        textBtnClone.textContent = 'Clonar Banco Selecionado';
+      }
 
       activeEventSource.close();
     });
@@ -374,7 +601,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
       btnSubmitClone.disabled = false;
       spinnerClone.classList.add('hidden');
-      textBtnClone.textContent = 'Clonar Banco Selecionado';
+      if (currentTargetDbMode === 'existing') {
+        updateTargetOverwriteWarning();
+      } else {
+        textBtnClone.textContent = 'Clonar Banco Selecionado';
+      }
 
       activeEventSource.close();
     });

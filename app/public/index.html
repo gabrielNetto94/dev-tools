@@ -184,40 +184,152 @@
                   </div>
                 </div>
 
-                <!-- 2. Nome do Clone e Modo -->
-                <div class="form-row">
-                  <div class="form-group flex-2">
-                    <div class="label-row">
-                      <label for="input-clone-name">Nome do Banco de Destino (Clone)</label>
-                      <button type="button" class="btn-link" id="btn-suggest-name">Sugerir Nome</button>
-                    </div>
-                    <input 
-                      type="text" 
-                      id="input-clone-name" 
-                      name="cloneName"
-                      placeholder="ex: clone_teste_01" 
-                      pattern="^[a-zA-Z0-9_]+$"
-                      title="Apenas letras, números e underlines"
-                      required 
-                    />
+                <!-- 2. Configuração do Servidor de Destino -->
+                <div class="form-group target-server-section">
+                  <div class="label-row">
+                    <label class="label-highlight">Servidor de Destino</label>
+                    <span class="target-server-summary" id="target-server-summary">🐳 Local Docker (Container cloner_postgres:5432)</span>
                   </div>
 
-                  <div class="form-group flex-1">
-                    <label for="select-clone-mode">Modo de Cópia</label>
-                    <select id="select-clone-mode" name="cloneMode">
-                      <option value="full">Completo (Schema + Dados)</option>
-                      <option value="schema">Apenas Esquema (Sem Dados)</option>
-                    </select>
+                  <div class="btn-segmented-group" id="target-server-selector">
+                    <button type="button" class="segmented-btn active" data-target-mode="local" id="btn-target-mode-local">
+                      <span class="seg-icon">🐳</span> Local Docker
+                    </button>
+                    <button type="button" class="segmented-btn" data-target-mode="source" id="btn-target-mode-source">
+                      <span class="seg-icon">🔗</span> Mesmo da Origem
+                    </button>
+                    <button type="button" class="segmented-btn" data-target-mode="custom" id="btn-target-mode-custom">
+                      <span class="seg-icon">⚙️</span> Outro Servidor
+                    </button>
+                  </div>
+
+                  <!-- Gaveta Custom Target Server -->
+                  <div id="drawer-target-server" class="server-config-drawer hidden">
+                    <div class="drawer-header">
+                      <h3 class="drawer-title">Configurar Servidor de Destino Personalizado</h3>
+                      <span class="drawer-subtitle">Conecte a outro PostgreSQL onde o clone será gravado</span>
+                    </div>
+                    
+                    <div class="form-row">
+                      <div class="form-group flex-2">
+                        <label for="input-target-host">Host / Servidor Destino</label>
+                        <input type="text" id="input-target-host" placeholder="ex: host.docker.internal ou rds.endpoint" />
+                      </div>
+                      <div class="form-group flex-1">
+                        <label for="input-target-port">Porta</label>
+                        <input type="text" id="input-target-port" placeholder="5432" value="5432" />
+                      </div>
+                    </div>
+
+                    <div class="form-row">
+                      <div class="form-group flex-1">
+                        <label for="input-target-user">Usuário</label>
+                        <input type="text" id="input-target-user" placeholder="postgres" value="postgres" />
+                      </div>
+                      <div class="form-group flex-1">
+                        <label for="input-target-pass">Senha</label>
+                        <input type="password" id="input-target-pass" placeholder="••••••••" value="postgres" />
+                      </div>
+                    </div>
+
+                    <div class="drawer-actions">
+                      <button type="button" id="btn-connect-target-server" class="btn-secondary btn-sm">
+                        Conectar e Carregar Bancos do Destino
+                      </button>
+                    </div>
                   </div>
                 </div>
 
-                <!-- Opções extras -->
-                <div class="options-row">
-                  <label class="custom-checkbox">
-                    <input type="checkbox" id="check-overwrite" name="dropIfExists" checked />
-                    <span class="checkbox-indicator"></span>
-                    <span>Substituir se o banco de destino já existir</span>
-                  </label>
+                <!-- 3. Escolha do Banco de Destino (Novo ou Sobrescrever) -->
+                <div class="form-group target-database-section">
+                  <div class="label-row">
+                    <label class="label-highlight">Banco de Dados de Destino</label>
+                  </div>
+
+                  <div class="btn-segmented-group" id="target-db-mode-selector">
+                    <button type="button" class="segmented-btn active" data-db-mode="new" id="btn-target-db-new">
+                      <span class="seg-icon">➕</span> Criar Novo Banco (Clone)
+                    </button>
+                    <button type="button" class="segmented-btn" data-db-mode="existing" id="btn-target-db-existing">
+                      <span class="seg-icon">🔁</span> Sobrescrever Banco Existente
+                    </button>
+                  </div>
+
+                  <!-- Opção A: Criar Novo Banco -->
+                  <div id="section-target-new-db" class="target-subview">
+                    <div class="form-row">
+                      <div class="form-group flex-2">
+                        <div class="label-row">
+                          <label for="input-clone-name">Nome do Novo Banco</label>
+                          <button type="button" class="btn-link" id="btn-suggest-name">Sugerir Nome</button>
+                        </div>
+                        <input 
+                          type="text" 
+                          id="input-clone-name" 
+                          name="cloneName"
+                          placeholder="ex: clone_teste_01" 
+                          pattern="^[a-zA-Z0-9_]+$"
+                          title="Apenas letras, números e underlines"
+                          required 
+                        />
+                      </div>
+
+                      <div class="form-group flex-1">
+                        <label for="select-clone-mode">Modo de Cópia</label>
+                        <select id="select-clone-mode" name="cloneMode">
+                          <option value="full">Completo (Schema + Dados)</option>
+                          <option value="schema">Apenas Esquema (Sem Dados)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div class="options-row">
+                      <label class="custom-checkbox">
+                        <input type="checkbox" id="check-overwrite" name="dropIfExists" checked />
+                        <span class="checkbox-indicator"></span>
+                        <span>Substituir se o banco de destino já existir</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <!-- Opção B: Sobrescrever Banco Existente -->
+                  <div id="section-target-existing-db" class="target-subview hidden">
+                    <div class="form-row">
+                      <div class="form-group flex-2">
+                        <div class="label-row">
+                          <label for="select-target-db">Selecione o Banco para Sobrescrever</label>
+                          <span class="badge-danger-sm">Destrutivo</span>
+                        </div>
+                        <div class="select-with-button">
+                          <select id="select-target-db" name="targetDbName" class="select-prominent">
+                            <option value="" disabled selected>Carregando bancos do servidor de destino...</option>
+                          </select>
+                          <button type="button" id="btn-refresh-target-dbs" class="btn-secondary btn-icon-only" title="Recarregar Bancos do Destino">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div class="form-group flex-1">
+                        <label for="select-clone-mode-existing">Modo de Cópia</label>
+                        <select id="select-clone-mode-existing">
+                          <option value="full">Completo (Schema + Dados)</option>
+                          <option value="schema">Apenas Esquema (Sem Dados)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <!-- Warning banner quando sobrescrevendo banco existente -->
+                    <div id="warning-target-overwrite" class="target-overwrite-banner">
+                      <div class="warning-icon">⚠️</div>
+                      <div class="warning-content">
+                        <strong id="warning-overwrite-title">Atenção ao sobrescrever!</strong>
+                        <p id="warning-overwrite-desc">O banco selecionado no servidor de destino terá seus dados recriados e sobrescritos com o dump do banco de origem.</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <!-- Botão Principal de Clonagem -->

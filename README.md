@@ -97,3 +97,5 @@ Os agentes vivem em `.agents/skills/` e são roteados pelo `GEMINI.md`:
 - `security-specialist`: Segurança de credenciais, validação de inputs e processos.
 - `docs`: Sincronização contínua de documentação e agentes.
 
+Para o contexto técnico e arquitetural completo da aplicação, consulte [CONTEXT.md](file:///home/gabriel/me/dblab/CONTEXT.md).
+

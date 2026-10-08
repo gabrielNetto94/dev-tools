@@ -1,6 +1,6 @@
 # Project Conventions
 
-- Stack: Node.js + Express (`app/server.js`), vanilla JS UI (`app/public/`), PostgreSQL 16 via Docker Compose.
+- Stack: Node.js + Express (`app/server.js`), vanilla JS UI (`app/public/`), PostgreSQL 18 & DynamoDB Local via Docker Compose.
 - Run: `docker compose up -d --build` then open http://localhost:3000.
 - Test: `cd app && npm test` (needs the stack running).
 - Preserve existing comments and docstrings unrelated to your change.

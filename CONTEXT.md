@@ -38,14 +38,19 @@ dblab/
 │   ├── rules/
 │   │   └── project-conventions.md  # Core project conventions & non-negotiables
 │   └── skills/                     # Specialized agent definitions (SKILL.md)
+│       ├── architect/              # Architecture guardian, modularity & 300-line limit
 │       ├── docker-specialist/      # Infrastructure, compose, Dockerfile, env
-│       ├── docs/                   # Keeps README, skills, and env files updated
+│       ├── docs/                   # Keeps README, CONTEXT, skills, and env files updated
 │       ├── dynamodb-specialist/    # DynamoDB operations, NoSQL workbench, SDK
+│       ├── implementer/            # Plan execution, refactor slices, test verification
 │       ├── planner/                # Pre-coding planning & impact assessment
+│       ├── platform-reviewer/      # Docker, host networking, PG version compatibility
 │       ├── postgres-specialist/    # pg_dump/restore, TEMPLATE forks, SQL backend
+│       ├── regression-reviewer/    # Diff review against contracts & regressions
 │       ├── security-specialist/    # Credentials, SQL identifier safety, processes
-│       ├── tester/                 # node:test test suite and regression tests
-│       └── ui/                     # app/public frontend and design system owner
+│       ├── tester/                 # node:test test suite & characterization tests
+│       ├── ui/                     # app/public frontend and design system owner
+│       └── ui-reviewer/            # Design system, tokens, and visual review
 ├── app/                            # Application source code
 │   ├── Dockerfile                  # Alpine Node.js 20 + postgresql18-client
 │   ├── package.json                # Express, pg, cors, @aws-sdk packages
@@ -315,16 +320,25 @@ The repository defines a team of specialized AI agents documented in `GEMINI.md`
 
 | Agent | Skill File | Domain of Responsibility |
 |---|---|---|
-| `planner` | `.agents/skills/planner/SKILL.md` | Required first step for new features, major refactors, or ambiguous requests before writing code. |
-| `tester` | `.agents/skills/tester/SKILL.md` | Node test suite (`node:test`), regression detection, fixtures in `app/test/`. |
-| `ui` | `.agents/skills/ui/SKILL.md` | Mandatory owner of all frontend changes in `app/public/`. Enforces the design system. |
+| `planner` | `.agents/skills/planner/SKILL.md` | Required first step for new features, major refactors, or ambiguous requests before writing code. Delivers impact checklist and sequenced steps. |
+| `architect` | `.agents/skills/architect/SKILL.md` | Architectural health, modularity, 300-400 line limits, pure domain logic extraction, and ADRs. |
+| `implementer` | `.agents/skills/implementer/SKILL.md` | Executes tasks strictly following the approved plan with zero scope drift and style matching. |
+| `tester` | `.agents/skills/tester/SKILL.md` | Node test suite (`node:test`), characterization tests, bug reproduction tests, and regressions in `app/test/`. |
+| `ui` | `.agents/skills/ui/SKILL.md` | Mandatory owner of all frontend changes in `app/public/`. Enforces the DEVinho design system. |
+| `regression-reviewer` | `.agents/skills/regression-reviewer/SKILL.md` | Pre-completion gatekeeper reviewing diffs against contracts, security, and unintended regressions. |
+| `ui-reviewer` | `.agents/skills/ui-reviewer/SKILL.md` | Reviews frontend diffs against design tokens, density, responsive layouts, and Portuguese copy. |
+| `platform-reviewer` | `.agents/skills/platform-reviewer/SKILL.md` | Reviews Docker host networking (`host.docker.internal`), PostgreSQL version parity, and environment configs. |
 | `postgres-specialist` | `.agents/skills/postgres-specialist/SKILL.md` | Streaming dumps, template clones, Postgres backend logic in `app/server.js`. |
 | `dynamodb-specialist` | `.agents/skills/dynamodb-specialist/SKILL.md` | AWS SDK v3, NoSQL Workbench, item/attribute editing, DynamoDB endpoints. |
 | `docker-specialist` | `.agents/skills/docker-specialist/SKILL.md` | `docker-compose.yaml`, `Dockerfile`, port forwarding, volumes, and networking. |
 | `security-specialist` | `.agents/skills/security-specialist/SKILL.md` | SQL identifier injection, credentials, child process safety, and CORS. |
-| `docs` | `.agents/skills/docs/SKILL.md` | Mandatory final step for any behavior-changing task. Keeps README, skills, and env files updated. |
+| `docs` | `.agents/skills/docs/SKILL.md` | Mandatory final step for any behavior-changing task. Keeps README, CONTEXT, skills, and env files updated. |
 
 ### 10.1 Key Development Workflow Rules
-1. **Visual Changes**: Every change reaching the screen must go through the `ui` agent guidelines (dense layout, wine accent only, zero emoji, Portuguese text).
-2. **Sensitive Logic**: Involve `security-specialist` whenever credentials, SQL identifiers, or child processes are modified.
-3. **Documentation Parity**: Finish every behavior-changing task with `docs` to keep `README.md`, `CONTEXT.md`, and skills synchronized with the code.
+1. **Planning First**: Start non-trivial tasks with `planner` to establish an impact checklist and assign tasks across agents.
+2. **Structural Health**: Involve `architect` for refactorings, modular extractions, or files approaching the 300-400 line limit.
+3. **Execution Parity**: `implementer` follows the plan without improvising scope; refactors enforce zero behavioral change.
+4. **Visual Changes**: Every change reaching the screen must go through `ui` (and `ui-reviewer`) adhering to DEVinho guidelines (dense layout, wine accent only, zero emoji, Portuguese text).
+5. **Sensitive Logic**: Involve `security-specialist` whenever credentials, SQL identifiers, or child processes are modified.
+6. **Pre-Completion Review**: Run `regression-reviewer` and `tester` (`npm test`) before declaring any task complete.
+7. **Documentation Parity**: Finish every behavior-changing task with `docs` to keep `README.md`, `CONTEXT.md`, and skills synchronized with the code.

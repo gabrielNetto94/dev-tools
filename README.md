@@ -88,14 +88,19 @@ A suíte roda com o test runner nativo do Node.js (`node:test`) e cobre endpoint
 ## 🤖 Agentes Especializados
 
 Os agentes vivem em `.agents/skills/` e são roteados pelo `GEMINI.md`:
-- `planner`: Planejamento e especificações antes de modificações.
-- `tester`: Criação, execução e prevenção de regressões em testes.
-- `ui`: Modificações em HTML, CSS e JavaScript do frontend.
+- `planner`: Planejamento e checklist de impacto antes de modificações.
+- `architect`: Guardião da arquitetura, modularidade, regra de 300-400 linhas e lógica pura de domínio.
+- `implementer`: Implementação de tarefas planejadas, correções e fatias de refatoração sem desvio de escopo.
+- `tester`: Criação de testes unitários/integração, testes de caracterização e prevenção de regressões com `node:test`.
+- `ui`: Modificações em HTML, CSS e JavaScript do frontend (design system DEVinho).
+- `regression-reviewer`: Revisão de diffs pré-conclusão contra regras do projeto, contratos e regressões.
+- `ui-reviewer`: Auditoria de conformidade visual, tokens de design, densidade e responsividade.
+- `platform-reviewer`: Revisão de ambientes Docker, rede host (`host.docker.internal`) e paridade de versões do PostgreSQL.
 - `postgres-specialist`: Streaming com `pg_dump | pg_restore`, `TEMPLATE` e backend Postgres.
 - `dynamodb-specialist`: Operações no DynamoDB, NoSQL Workbench, edição de variáveis e AWS SDK.
-- `docker-specialist`: Docker Compose, Dockerfile, portas e redes.
+- `docker-specialist`: Docker Compose, Dockerfile, portas, volumes e redes.
 - `security-specialist`: Segurança de credenciais, validação de inputs e processos.
-- `docs`: Sincronização contínua de documentação e agentes.
+- `docs`: Sincronização contínua de documentação, README, CONTEXT e agentes.
 
 Para o contexto técnico e arquitetural completo da aplicação, consulte [CONTEXT.md](file:///home/gabriel/me/dblab/CONTEXT.md).
 

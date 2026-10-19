@@ -1,8 +1,9 @@
 # DEVinho Suite 🍷
 
-Suite web moderna, rápida e estilizada com a identidade **DEVinho** para desenvolvimento de bancos de dados, contendo dois módulos principais:
+Suite web moderna, rápida e estilizada com a identidade **DEVinho** para desenvolvimento e dados, contendo três módulos principais:
 1. **🐘 Postgres Cloner**: Seleção e clonagem rápida de bancos de dados PostgreSQL por streaming em memória (`pg_dump | pg_restore`) e forks instantâneos via `TEMPLATE`.
 2. **⚡ DynamoDB Workbench**: Interface inspirada no NoSQL Workbench para conectar a contas AWS Cloud ou DynamoDB Local, explorar tabelas, listar itens e inspecionar/editar variáveis e atributos em tempo real (via formulário visual ou JSON raw).
+3. **🔑 DocuSign Token**: Gerador de tokens de autenticação para DocuSign via OAuth 2.0 JWT Bearer Grant (RFC 7523), com suporte flexível a JSON de credenciais, chave privada PEM e link de consentimento prévio.
 
 ---
 
@@ -23,6 +24,7 @@ docker compose up -d --build
 Use a sidebar à esquerda para alternar entre os módulos:
 - **Postgres Cloner**: clonagem de bancos PostgreSQL e lista de clones.
 - **DynamoDB Workbench**: grade de itens e editor de atributos do DynamoDB.
+- **DocuSign Token**: gerador de asserção JWT e emissor de Access Token da DocuSign.
 - Cada módulo mostra um ponto com o estado da conexão (verde conectado, âmbar/vermelho com falha, vinho durante uma clonagem).
 - A sidebar recolhe para um trilho de ícones pelo botão no topo ou com `Ctrl+B`. Abaixo de 1100px ela fica sempre recolhida.
 
@@ -65,6 +67,27 @@ O fluxo fica à esquerda em três passos; log, resultado e clones ficam à direi
 4. **Editor de item (painel lateral):**
    - **Aba Visual**: adicione atributos, altere tipos (`String`, `Number`, `Boolean`, `Map`, `List`, `Null`) e edite valores campo a campo.
    - **Aba JSON**: editor com validação de sintaxe em tempo real, sincronizado com a aba Visual.
+
+---
+
+## 🔑 Módulo 3: DocuSign Token
+
+Permite gerar tokens de autenticação da DocuSign via OAuth 2.0 JWT Bearer Grant ([RFC 7523](https://datatracker.ietf.org/doc/html/rfc7523)) para integrações machine-to-machine.
+
+1. **Parâmetros e Identificação Flexível:**
+   - **Ambiente:** escolha entre **Demo (Sandbox)** (`account-d.docusign.com`) e **Produção** (`account.docusign.com`).
+   - Os campos aceitam tanto os nomes da DocuSign quanto os nomes das colunas da tabela `tb_integradoras`:
+     - **Client ID / Integration Key:** `integradora_chave`
+     - **User ID:** `integradora_secret_key` (GUID do usuário personificado)
+     - **Account ID (opcional):** `integradora_account_id`
+2. **Entrada Flexível da Chave Privada RSA:**
+   - Aceita o texto da chave privada PEM (`-----BEGIN RSA PRIVATE KEY-----`) direto.
+   - **Ou aceita a colagem do JSON completo**, extraindo automaticamente o campo `privateRSAKey` (e preenchendo os demais campos se presentes no JSON).
+   - Suporta upload de arquivos `.pem`, `.key` ou `.json`.
+3. **Geração e Ações:**
+   - **Gerar Access Token:** assina a asserção JWT com RS256 e requisita o `access_token` oficial no endpoint OAuth da DocuSign (`/oauth/token`).
+   - **Apenas Gerar JWT:** gera a asserção JWT assinada offline sem realizar chamada externa.
+   - **One-Time Consent:** se a conta DocuSign ainda não tiver consentimento prévio concedido (`consent_required`), o sistema exibe um alerta claro com link direto e botão de copiar a URL de autorização.
 
 ---
 

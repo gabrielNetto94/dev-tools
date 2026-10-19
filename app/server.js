@@ -41,6 +41,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 const dynamodbRouter = require('./dynamodb');
 app.use('/api/dynamodb', dynamodbRouter);
 
+// Módulo DocuSign Token Generator
+const docusignRouter = require('./docusign');
+app.use('/api/docusign', docusignRouter);
+
 // Retorna URL de conexão do Postgres de destino (rede interna do Docker)
 function getTargetDbUrl(dbName) {
   return `postgresql://${TARGET_USER}:${encodeURIComponent(TARGET_PASSWORD)}@${TARGET_HOST}:${TARGET_PORT}/${dbName}`;

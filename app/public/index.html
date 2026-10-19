@@ -37,6 +37,11 @@
           <span class="lbl">DynamoDB Workbench</span>
           <span class="dot" id="nav-dot-dynamodb" role="img" aria-label="Desconectado"></span>
         </button>
+        <button type="button" id="nav-btn-docusign" data-view="docusign" title="DocuSign Token">
+          <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="7.5" cy="15.5" r="4.5"></circle><path d="m21 3-10.2 10.2M15.5 8.5l2.5 2.5M18.5 5.5l2.5 2.5"></path></svg>
+          <span class="lbl">DocuSign Token</span>
+          <span class="dot ok" id="nav-dot-docusign" role="img" aria-label="Pronto"></span>
+        </button>
         <span class="nav-ind" id="nav-indicator" aria-hidden="true"></span>
       </nav>
 
@@ -49,6 +54,7 @@
         <h1>
           <span id="title-postgres">Postgres Cloner</span>
           <span id="title-dynamodb" class="crumb hidden">DynamoDB Workbench</span>
+          <span id="title-docusign" class="crumb hidden">DocuSign Token</span>
         </h1>
         <span class="spacer"></span>
 
@@ -68,6 +74,13 @@
             <svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"></path><circle cx="16" cy="6" r="2"></circle><circle cx="10" cy="12" r="2"></circle><circle cx="18" cy="18" r="2"></circle></svg>
             Conexão
           </button>
+        </div>
+
+        <div class="top-group hidden" id="top-docusign">
+          <span class="status" id="docusign-status-badge">
+            <span class="dot ok" id="docusign-status-dot"></span>
+            <span id="docusign-status-text">OAuth 2.0 JWT Grant</span>
+          </span>
         </div>
       </header>
 
@@ -578,6 +591,165 @@
           </aside>
         </div>
       </div>
+
+      <!-- ========================================== -->
+      <!-- MÓDULO 3: DOCUSIGN TOKEN                   -->
+      <!-- ========================================== -->
+      <div id="view-docusign" class="view hidden" style="overflow: auto;">
+        <div class="connect" style="max-width: 760px; margin: 0 auto; width: 100%;">
+          <form id="form-docusign" class="connect-card" style="width: 100%;" aria-labelledby="docusign-title" onsubmit="return false;">
+            <div>
+              <h2 id="docusign-title">Gerador de Token DocuSign</h2>
+              <p class="lead">Gere asserções JWT assinadas com RS256 e obtenha tokens de acesso (OAuth 2.0 JWT Bearer Grant) para integrações machine-to-machine.</p>
+            </div>
+
+            <!-- 1. Ambiente -->
+            <div class="field">
+              <span class="flabel">Ambiente</span>
+              <div class="chips" role="group" aria-label="Ambiente DocuSign">
+                <button type="button" class="chip" id="preset-docusign-demo" aria-pressed="true">
+                  <span>Demo (Sandbox)</span>
+                  <span class="mono">account-d.docusign.com</span>
+                </button>
+                <button type="button" class="chip" id="preset-docusign-prod" aria-pressed="false">
+                  <span>Produção</span>
+                  <span class="mono">account.docusign.com</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 2. Credenciais -->
+            <div class="grid-2e">
+              <div class="field">
+                <label for="input-docusign-integration-key">Client ID / Integration Key <span class="opt-t">· integradora_chave</span></label>
+                <input type="text" id="input-docusign-integration-key" class="input mono" placeholder="ex: 7c2b0c47-..." autocomplete="off" spellcheck="false" />
+              </div>
+              <div class="field">
+                <label for="input-docusign-user-id">User ID <span class="opt-t">· integradora_secret_key</span></label>
+                <input type="text" id="input-docusign-user-id" class="input mono" placeholder="ex: 4a123b78-..." autocomplete="off" spellcheck="false" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="input-docusign-account-id">Account ID <span class="opt-t">· integradora_account_id (opcional)</span></label>
+              <input type="text" id="input-docusign-account-id" class="input mono" placeholder="ex: 12345678 ou GUID da conta" autocomplete="off" spellcheck="false" />
+            </div>
+
+            <!-- 3. Chave Privada RSA -->
+            <div class="field">
+              <div class="input-row between">
+                <label for="input-docusign-private-key">Chave Privada RSA <span class="opt-t">· privateRSAKey / PEM</span></label>
+                <label class="link" style="cursor: pointer; font-size: 12px;">
+                  <input type="file" id="file-docusign-private-key" accept=".pem,.key,.txt,.json" class="sr" />
+                  Carregar arquivo (.pem / .json)
+                </label>
+              </div>
+              <textarea id="input-docusign-private-key" class="input mono" rows="5" placeholder="Cole a chave privada PEM ou o JSON contendo privateRSAKey&#10;-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----" spellcheck="false"></textarea>
+              <p class="hint">Aceita chave PEM direta ou JSON contendo o campo <span class="mono">privateRSAKey</span>.</p>
+            </div>
+
+            <!-- 4. Validade e Opções -->
+            <div class="input-row between">
+              <div class="field" style="width: 180px;">
+                <label for="input-docusign-expires">Validade (segundos)</label>
+                <input type="number" id="input-docusign-expires" class="input mono" value="3600" min="60" max="3600" />
+              </div>
+              <div style="display: flex; align-items: flex-end; padding-bottom: 2px;">
+                <label class="check">
+                  <input type="checkbox" id="check-docusign-remember" checked />
+                  <span>Lembrar Integration Key e User ID</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Alertas de Erro ou Consentimento -->
+            <div class="alert err hidden" id="docusign-error" role="alert">
+              <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4M12 16h.01"></path></svg>
+              <div>
+                <b id="docusign-error-title">Erro</b>
+                <p id="docusign-error-text"></p>
+              </div>
+            </div>
+
+            <div class="alert warn hidden" id="docusign-consent-alert" role="alert">
+              <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4M12 17h.01"></path></svg>
+              <div>
+                <b>Consentimento prévio obrigatório (One-Time Consent)</b>
+                <p style="margin-bottom: 8px;">A DocuSign exige que o usuário personificado conceda autorização à integração uma única vez antes de emitir tokens.</p>
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                  <a id="link-docusign-consent" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary">
+                    Abrir autorização DocuSign
+                  </a>
+                  <button type="button" id="btn-copy-docusign-consent" class="btn btn-sm btn-ghost">
+                    Copiar URL
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Botões de Ação -->
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 4px;">
+              <button type="button" id="btn-docusign-generate-token" class="btn btn-primary btn-lg">
+                <svg class="i spin hidden" id="spinner-docusign-token" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.2-8.56"></path></svg>
+                Gerar Access Token
+              </button>
+              <button type="button" id="btn-docusign-generate-jwt" class="btn btn-ghost btn-lg">
+                Apenas Gerar JWT
+              </button>
+              <button type="button" id="btn-docusign-get-consent" class="btn btn-ghost btn-sm" title="Gerar link de consentimento prévio">
+                Link de Consentimento
+              </button>
+              <button type="button" id="btn-docusign-clear" class="btn btn-ghost btn-sm" style="margin-left: auto;">
+                Limpar
+              </button>
+            </div>
+
+            <!-- Painel de Resultados -->
+            <div id="docusign-result" class="result hidden" style="margin: 8px 0 0;">
+              <div class="result-h">
+                <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m8.5 12 2.5 2.5 4.5-5"></path></svg>
+                <b id="docusign-result-title">Token Gerado com Sucesso</b>
+                <span class="muted mono" id="docusign-result-meta"></span>
+              </div>
+
+              <!-- Access Token (se gerado) -->
+              <div id="docusign-access-token-box" class="field">
+                <div class="input-row between">
+                  <span class="flabel">Access Token (DocuSign OAuth)</span>
+                  <span class="mono" style="font-size: 11.5px; color: var(--ok);" id="docusign-token-expires-label"></span>
+                </div>
+                <div class="copyfield">
+                  <code id="code-docusign-access-token"></code>
+                  <button type="button" class="iconbtn xs" id="btn-copy-docusign-access-token" aria-label="Copiar Access Token" title="Copiar Access Token">
+                    <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"></path></svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- JWT Assertion -->
+              <div class="field">
+                <div class="input-row between">
+                  <span class="flabel">JWT Assertion (Assinado RS256)</span>
+                  <span class="opt-t">assertion</span>
+                </div>
+                <div class="copyfield">
+                  <code id="code-docusign-jwt"></code>
+                  <button type="button" class="iconbtn xs" id="btn-copy-docusign-jwt" aria-label="Copiar JWT Assertion" title="Copiar JWT Assertion">
+                    <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"></path></svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Claims Decodificados -->
+              <div class="field">
+                <span class="flabel">Claims do JWT</span>
+                <pre class="code mono" id="code-docusign-claims" style="min-height: 120px; max-height: 180px; padding: 8px 10px; font-size: 11.5px; margin: 0;"></pre>
+              </div>
+            </div>
+
+          </form>
+        </div>
+      </div>
     </main>
   </div>
 
@@ -628,5 +800,6 @@
   <!-- Scripts -->
   <script src="app.js"></script>
   <script src="dynamodb.js"></script>
+  <script src="docusign.js"></script>
 </body>
 </html>

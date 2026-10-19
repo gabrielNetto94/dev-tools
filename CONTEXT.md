@@ -8,9 +8,10 @@
 
 **DEVinho Suite** (internally identified as `dblab` or `postgres-cloner`) is a local development and data manipulation platform built with a dark, dense, minimalist tool aesthetic (wine/ruby brand identity). 
 
-The application solves two frequent local engineering bottlenecks:
+The application solves three frequent local engineering bottlenecks:
 1. **🐘 Postgres Cloner**: Instant and streaming replication of PostgreSQL databases. It allows developers to clone databases from local, host, or remote servers into isolated Docker databases or back into existing targets using in-memory streaming (`pg_dump | pg_restore`) or ultra-fast template forks (`CREATE DATABASE ... TEMPLATE ...` under 1 second), with real-time Server-Sent Events (SSE) streaming progress.
 2. **⚡ DynamoDB Workbench**: A lightweight, web-based alternative to AWS NoSQL Workbench. It allows developers to connect to AWS Cloud, DynamoDB Local, or LocalStack, inspect table schemas (Partition Key and Sort Key), scan items, and view/edit attributes and variables in real time using a synchronized dual-mode interface (Visual field editor + Raw JSON editor).
+3. **🔑 DocuSign Token Generator**: Machine-to-machine authentication token generator via OAuth 2.0 JWT Bearer Grant ([RFC 7523](https://datatracker.ietf.org/doc/html/rfc7523)). Signs RS256 assertions and requests access tokens from DocuSign OAuth servers, with flexible JSON key extraction and alias support for database columns (`integradora_chave`, `integradora_secret_key`, `integradora_account_id`).
 
 ---
 
@@ -57,15 +58,18 @@ dblab/
 │   ├── package-lock.json
 │   ├── server.js                   # Primary Express server, Postgres API & SSE stream
 │   ├── dynamodb.js                 # DynamoDB router (CRUD, describe, scan, tables)
+│   ├── docusign.js                 # DocuSign router (RS256 JWT assertion & OAuth token)
 │   ├── public/                     # Static frontend files (served by Express)
 │   │   ├── index.html              # Single page layout, accessible semantic markup
 │   │   ├── style.css               # Design system tokens, dense layout, animations
 │   │   ├── app.js                  # Global DEVinho utilities, Postgres UI controller
 │   │   ├── dynamodb.js             # DynamoDB Workbench UI controller & editor
+│   │   ├── docusign.js             # DocuSign Token UI controller
 │   │   └── devinho-logo.jpg        # DEVinho brand icon
 │   └── test/                       # Integration test suite
 │       ├── api.test.js             # Postgres Cloner & SSE tests
-│       └── dynamodb.test.js        # DynamoDB Workbench API tests
+│       ├── dynamodb.test.js        # DynamoDB Workbench API tests
+│       └── docusign.test.js        # DocuSign Token & RS256 signing tests
 ├── init-test-db/                   # Database seed scripts for testing
 │   └── 01-seed-db.sql              # Seeds `seed_db` with sample tables and rows
 ├── .env.example                    # Template environment variables
@@ -167,7 +171,40 @@ All endpoints accept optional connection credentials in the request body (`{ reg
 
 ---
 
-## 6. Frontend Architecture & Design System
+## 6. Module 3: DocuSign Token Generator
+
+### 6.1 Architecture & Core Concepts
+The DocuSign Token Generator module automates OAuth 2.0 JWT Grant authentication for DocuSign eSignature integrations.
+
+1. **JWT Assertion (RS256) Generation**:
+   - Built using Node.js's built-in `crypto` module (zero external npm dependencies).
+   - Standard claims:
+     - `iss`: Integration Key / Client ID.
+     - `sub`: Impersonated User GUID.
+     - `aud`: `account.docusign.com` (Production) or `account-d.docusign.com` (Demo/Sandbox).
+     - `iat`: Current UNIX timestamp.
+     - `exp`: Current UNIX timestamp + validity in seconds (max 3600s / 1 hour).
+     - `scope`: `signature impersonation`.
+2. **Flexible Credential Ingestion & Dual Naming**:
+   - Supports both DocuSign standard naming and legacy/database columns (`tb_integradoras`):
+     - `client_id` / `integrationKey` / `integradora_chave`
+     - `userId` / `user_id` / `integradora_secret_key`
+     - `accountId` / `account_id` / `integradora_account_id`
+   - Flexible Private Key: Accepts direct PEM text or full JSON containing `privateRSAKey` (e.g. `{ "publicRSAKey": "...", "privateRSAKey": "..." }`).
+3. **One-Time Consent Handling**:
+   - Detects `consent_required` error responses (HTTP 400) and immediately constructs and presents the direct authorization URL (`/oauth/auth?response_type=code&scope=signature%20impersonation...`).
+
+### 6.2 DocuSign API Endpoints
+
+| Method | Endpoint | Description | Request Body | Response |
+|---|---|---|---|---|
+| `POST` | `/api/docusign/jwt` | Generates and signs offline RS256 JWT assertion | `{ integrationKey, userId, privateRSAKey, environment, expiresIn, accountId }` | `{ success, jwt, claims, audience, environment, expiresIn, accountId? }` |
+| `POST` | `/api/docusign/token` | Generates JWT and exchanges for DocuSign access token | `{ integrationKey, userId, privateRSAKey, environment, expiresIn, accountId }` | `{ success, jwt, access_token, token_type, expires_in, claims, audience, accountId? }` |
+| `POST` | `/api/docusign/consent-url` | Constructs one-time consent authorization URL | `{ integrationKey, environment, redirectUri }` | `{ success, consentUrl }` |
+
+---
+
+## 7. Frontend Architecture & Design System
 
 The frontend is contained entirely in `app/public/` and requires no compilation step.
 

@@ -232,6 +232,13 @@ button, input, select, textarea { font-family: inherit; }
 .input:focus { border-color: var(--wine-600); box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.22); }
 .input.is-error { border-color: var(--danger); }
 .input[disabled] { opacity: 0.55; cursor: not-allowed; }
+textarea.input {
+  height: auto;
+  min-height: 90px;
+  padding: 8px 10px;
+  resize: vertical;
+  line-height: 1.45;
+}
 .input-row { display: flex; gap: 8px; align-items: center; }
 .input-row.between { justify-content: space-between; flex-wrap: wrap; }
 .affix { position: relative; display: flex; align-items: center; flex: 1; min-width: 0; }

@@ -73,8 +73,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
   const navBtnPostgres = document.getElementById('nav-btn-postgres');
   const navBtnDynamodb = document.getElementById('nav-btn-dynamodb');
+  const navBtnDocusign = document.getElementById('nav-btn-docusign');
   const viewPostgres = document.getElementById('view-postgres');
   const viewDynamodb = document.getElementById('view-dynamodb');
+  const viewDocusign = document.getElementById('view-docusign');
+  const titlePostgres = document.getElementById('title-postgres');
+  const titleDynamodb = document.getElementById('title-dynamodb');
+  const titleDocusign = document.getElementById('title-docusign');
+  const topPostgres = document.getElementById('top-postgres');
+  const topDynamodb = document.getElementById('top-dynamodb');
+  const topDocusign = document.getElementById('top-docusign');
 
   // Gerenciamento da Sidebar Retrátil
   function setSidebarCollapsed(collapsed) {
@@ -99,32 +107,49 @@ document.addEventListener('DOMContentLoaded', () => {
   const navIndicator = document.getElementById('nav-indicator');
 
   function moveNavIndicator(button) {
+    if (!button) return;
     const offset = button.offsetTop + (button.offsetHeight - navIndicator.offsetHeight) / 2;
     navIndicator.style.transform = `translateY(${offset}px)`;
   }
 
-  // Alternância de Módulos (Postgres Cloner vs DynamoDB Workbench)
+  // Alternância de Módulos (Postgres Cloner, DynamoDB Workbench, DocuSign Token)
   function switchModule(targetView) {
-    const isDynamo = targetView === 'dynamodb';
-    (isDynamo ? navBtnDynamodb : navBtnPostgres).setAttribute('aria-current', 'page');
-    (isDynamo ? navBtnPostgres : navBtnDynamodb).removeAttribute('aria-current');
-    moveNavIndicator(isDynamo ? navBtnDynamodb : navBtnPostgres);
+    const modules = {
+      postgres: { btn: navBtnPostgres, view: viewPostgres, title: titlePostgres, top: topPostgres },
+      dynamodb: { btn: navBtnDynamodb, view: viewDynamodb, title: titleDynamodb, top: topDynamodb },
+      docusign: { btn: navBtnDocusign, view: viewDocusign, title: titleDocusign, top: topDocusign },
+    };
 
-    viewDynamodb.classList.toggle('hidden', !isDynamo);
-    viewPostgres.classList.toggle('hidden', isDynamo);
-    document.getElementById('title-dynamodb').classList.toggle('hidden', !isDynamo);
-    document.getElementById('title-postgres').classList.toggle('hidden', isDynamo);
-    document.getElementById('top-dynamodb').classList.toggle('hidden', !isDynamo);
-    document.getElementById('top-postgres').classList.toggle('hidden', isDynamo);
-    localStorage.setItem('dblab_active_view', targetView);
+    const actualKey = modules[targetView] ? targetView : 'postgres';
+    const active = modules[actualKey];
+
+    Object.entries(modules).forEach(([key, item]) => {
+      if (!item.btn || !item.view) return;
+      const isCurrent = key === actualKey;
+      if (isCurrent) {
+        item.btn.setAttribute('aria-current', 'page');
+      } else {
+        item.btn.removeAttribute('aria-current');
+      }
+      item.view.classList.toggle('hidden', !isCurrent);
+      if (item.title) item.title.classList.toggle('hidden', !isCurrent);
+      if (item.top) item.top.classList.toggle('hidden', !isCurrent);
+    });
+
+    moveNavIndicator(active.btn);
+    localStorage.setItem('dblab_active_view', actualKey);
   }
 
   navBtnPostgres.addEventListener('click', () => switchModule('postgres'));
   navBtnDynamodb.addEventListener('click', () => switchModule('dynamodb'));
+  if (navBtnDocusign) {
+    navBtnDocusign.addEventListener('click', () => switchModule('docusign'));
+  }
 
   // Restaurar módulo ativo anterior se houver
-  if (localStorage.getItem('dblab_active_view') === 'dynamodb') {
-    switchModule('dynamodb');
+  const savedActiveView = localStorage.getItem('dblab_active_view');
+  if (savedActiveView && ['dynamodb', 'docusign'].includes(savedActiveView)) {
+    switchModule(savedActiveView);
   } else {
     moveNavIndicator(navBtnPostgres);
   }

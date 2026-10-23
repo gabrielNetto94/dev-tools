@@ -20,7 +20,16 @@ function normalizePrivateKey(rawKey) {
 
   // Se já for um objeto JavaScript (ex: se o body enviou um objeto)
   if (typeof key === 'object') {
-    key = key.privateRSAKey || key.private_rsa_key || key.privateKey || key.private_key || '';
+    let extracted = key.privateRSAKey || key.private_rsa_key || key.privateKey || key.private_key;
+    if (!extracted && key.integradora_dados) {
+      const dados = typeof key.integradora_dados === 'string'
+        ? (() => { try { return JSON.parse(key.integradora_dados); } catch (_) { return null; } })()
+        : key.integradora_dados;
+      if (dados && typeof dados === 'object') {
+        extracted = dados.privateRSAKey || dados.private_rsa_key || dados.privateKey || dados.private_key;
+      }
+    }
+    key = extracted || '';
   }
 
   if (typeof key !== 'string') {
@@ -34,7 +43,15 @@ function normalizePrivateKey(rawKey) {
     try {
       const parsed = JSON.parse(key);
       if (parsed && typeof parsed === 'object') {
-        const extracted = parsed.privateRSAKey || parsed.private_rsa_key || parsed.privateKey || parsed.private_key;
+        let extracted = parsed.privateRSAKey || parsed.private_rsa_key || parsed.privateKey || parsed.private_key;
+        if (!extracted && parsed.integradora_dados) {
+          const dados = typeof parsed.integradora_dados === 'string'
+            ? JSON.parse(parsed.integradora_dados)
+            : parsed.integradora_dados;
+          if (dados && typeof dados === 'object') {
+            extracted = dados.privateRSAKey || dados.private_rsa_key || dados.privateKey || dados.private_key;
+          }
+        }
         if (extracted && typeof extracted === 'string') {
           key = extracted.trim();
         }
@@ -58,7 +75,7 @@ function normalizePrivateKey(rawKey) {
 /**
  * Normaliza parâmetros de requisição para aceitar múltiplos padrões de nomenclatura:
  * - DocuSign / OAuth: integrationKey, client_id, userId, privateRSAKey, accountId
- * - Banco tb_integradoras: integradora_chave, integradora_secret_key, integradora_account_id
+ * - Banco tb_integradoras: integradora_chave, integradora_secret_key, integradora_account_id, integradora_url, integradora_dados
  */
 function parseRequestParams(body = {}) {
   const integrationKey = (body.integrationKey || body.client_id || body.integradora_chave || '').toString().trim();
@@ -68,23 +85,30 @@ function parseRequestParams(body = {}) {
   let privateRSAKey = body.privateRSAKey || body.private_rsa_key || body.privateKey;
   if (!privateRSAKey && body.integradora_dados) {
     if (typeof body.integradora_dados === 'object') {
-      privateRSAKey = body.integradora_dados.privateRSAKey || body.integradora_dados.private_rsa_key;
+      privateRSAKey = body.integradora_dados.privateRSAKey || body.integradora_dados.private_rsa_key || body.integradora_dados.privateKey;
     } else if (typeof body.integradora_dados === 'string') {
       try {
         const parsed = JSON.parse(body.integradora_dados);
-        privateRSAKey = parsed.privateRSAKey || parsed.private_rsa_key;
+        privateRSAKey = parsed.privateRSAKey || parsed.private_rsa_key || parsed.privateKey;
       } catch (_) {
         privateRSAKey = body.integradora_dados;
       }
     }
   }
 
+  // Se o body inteiro for o objeto integradora e privateRSAKey ainda não tiver sido preenchido
+  if (!privateRSAKey && (body.integradora || body.integradora_chave)) {
+    privateRSAKey = body;
+  }
+
+  const environment = body.environment || body.integradora_url;
+
   return {
     integrationKey,
     userId,
     accountId,
     privateRSAKey,
-    environment: body.environment,
+    environment,
     expiresIn: body.expiresIn,
   };
 }

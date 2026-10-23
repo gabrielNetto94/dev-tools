@@ -20,6 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnGetConsent = document.getElementById('btn-docusign-get-consent');
   const btnClear = document.getElementById('btn-docusign-clear');
   const spinnerToken = document.getElementById('spinner-docusign-token');
+  const btnPasteJson = document.getElementById('btn-docusign-paste-json');
+  const formDocusign = document.getElementById('form-docusign');
 
   // Alertas e Resultados
   const alertError = document.getElementById('docusign-error');
@@ -35,11 +37,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const boxAccessToken = document.getElementById('docusign-access-token-box');
   const codeAccessToken = document.getElementById('code-docusign-access-token');
   const labelTokenExpires = document.getElementById('docusign-token-expires-label');
-  const codeJwt = document.getElementById('code-docusign-jwt');
   const codeClaims = document.getElementById('code-docusign-claims');
 
   const btnCopyAccessToken = document.getElementById('btn-copy-docusign-access-token');
-  const btnCopyJwt = document.getElementById('btn-copy-docusign-jwt');
 
   // Status no cabeçalho
   const statusBadge = document.getElementById('docusign-status-badge');
@@ -66,7 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
   presetDemo.addEventListener('click', () => setEnvironment('demo'));
   presetProd.addEventListener('click', () => setEnvironment('production'));
 
-  // 2. Extração flexível de JSON (para privateRSAKey e campos associados)
+  // 2. Extração flexível de JSON (suporta tb_integradoras, privateRSAKey direta e aninhada em integradora_dados)
   function parsePossibleJson(text) {
     if (!text || typeof text !== 'string') return null;
     const trimmed = text.trim();
@@ -80,38 +80,107 @@ document.addEventListener('DOMContentLoaded', () => {
     return null;
   }
 
-  function handleJsonAutoExtraction(rawInput, showFeedback = true) {
-    const parsed = parsePossibleJson(rawInput);
-    if (!parsed) return false;
+  function extractDocuSignConfig(rawInput) {
+    if (!rawInput) return null;
+    let parsed = typeof rawInput === 'object' ? rawInput : parsePossibleJson(rawInput);
+    if (!parsed || typeof parsed !== 'object') return null;
 
-    let extractedAny = false;
-    const key = parsed.privateRSAKey || parsed.private_rsa_key || parsed.privateKey || parsed.private_key;
-    if (key && typeof key === 'string') {
-      inputPrivateKey.value = key.trim();
-      extractedAny = true;
+    if (parsed.data && typeof parsed.data === 'object') {
+      parsed = parsed.data;
     }
 
-    // Se o JSON contiver outros campos da integradora, auto-preenche se estiverem vazios
-    const incomingKey = parsed.integradora_chave || parsed.client_id || parsed.integrationKey;
-    if (incomingKey && !inputIntegrationKey.value) {
-      inputIntegrationKey.value = incomingKey;
+    let privateRSAKey = '';
+    const directKey = parsed.privateRSAKey || parsed.private_rsa_key || parsed.privateKey || parsed.private_key;
+    if (directKey && typeof directKey === 'string') {
+      privateRSAKey = directKey;
+    } else if (parsed.integradora_dados) {
+      let dados = parsed.integradora_dados;
+      if (typeof dados === 'string') {
+        try {
+          dados = JSON.parse(dados);
+        } catch (_) {}
+      }
+      if (dados && typeof dados === 'object') {
+        const nestedKey = dados.privateRSAKey || dados.private_rsa_key || dados.privateKey || dados.private_key;
+        if (nestedKey && typeof nestedKey === 'string') {
+          privateRSAKey = nestedKey;
+        }
+      }
     }
+
+    if (privateRSAKey && typeof privateRSAKey === 'string') {
+      if (privateRSAKey.includes('\\n')) {
+        privateRSAKey = privateRSAKey.replace(/\\n/g, '\n');
+      }
+      privateRSAKey = privateRSAKey.trim();
+    }
+
+    const incomingKey = parsed.integradora_chave || parsed.client_id || parsed.integrationKey || parsed.clientId;
+    const integrationKey = incomingKey ? String(incomingKey).trim() : '';
 
     const incomingUser = parsed.integradora_secret_key || parsed.userId || parsed.user_id;
-    if (incomingUser && !inputUserId.value) {
-      inputUserId.value = incomingUser;
-    }
+    const userId = incomingUser ? String(incomingUser).trim() : '';
 
     const incomingAccount = parsed.integradora_account_id || parsed.accountId || parsed.account_id;
-    if (incomingAccount && inputAccountId && !inputAccountId.value) {
-      inputAccountId.value = incomingAccount;
+    const accountId = incomingAccount ? String(incomingAccount).trim() : '';
+
+    let environment = null;
+    const rawEnv = (parsed.integradora_url || parsed.environment || parsed.env || '').toString().trim().toLowerCase();
+    if (rawEnv) {
+      if (rawEnv.includes('prod') || (rawEnv.includes('account.docusign.com') && !rawEnv.includes('account-d'))) {
+        environment = 'production';
+      } else if (rawEnv.includes('demo') || rawEnv.includes('sandbox') || rawEnv.includes('account-d')) {
+        environment = 'demo';
+      }
     }
 
-    if (extractedAny && showFeedback) {
-      toast('Chave privada (privateRSAKey) extraída do JSON!', 'ok');
-      savePreferences();
+    return {
+      privateRSAKey,
+      integrationKey,
+      userId,
+      accountId,
+      environment,
+    };
+  }
+
+  function applyExtractedConfig(config, showFeedback = true) {
+    if (!config) return false;
+    let appliedAny = false;
+
+    if (config.privateRSAKey) {
+      inputPrivateKey.value = config.privateRSAKey;
+      appliedAny = true;
     }
-    return extractedAny;
+    if (config.integrationKey) {
+      inputIntegrationKey.value = config.integrationKey;
+      appliedAny = true;
+    }
+    if (config.userId) {
+      inputUserId.value = config.userId;
+      appliedAny = true;
+    }
+    if (config.accountId && inputAccountId) {
+      inputAccountId.value = config.accountId;
+      appliedAny = true;
+    }
+    if (config.environment) {
+      setEnvironment(config.environment);
+      appliedAny = true;
+    }
+
+    if (appliedAny) {
+      savePreferences();
+      if (showFeedback) {
+        toast('Dados da DocuSign importados com sucesso!', 'ok');
+      }
+    }
+    return appliedAny;
+  }
+
+  function handleJsonAutoExtraction(rawInput, showFeedback = true) {
+    const config = extractDocuSignConfig(rawInput);
+    if (!config) return false;
+    return applyExtractedConfig(config, showFeedback);
   }
 
   // Detecta quando o usuário cola ou digita JSON no campo de chave privada
@@ -124,6 +193,53 @@ document.addEventListener('DOMContentLoaded', () => {
   inputPrivateKey.addEventListener('blur', () => {
     handleJsonAutoExtraction(inputPrivateKey.value, true);
   });
+
+  // Botão "Colar dados (JSON)" lê a área de transferência do usuário
+  if (btnPasteJson) {
+    btnPasteJson.addEventListener('click', async () => {
+      try {
+        if (!navigator.clipboard || !navigator.clipboard.readText) {
+          throw new Error('Clipboard indisponível');
+        }
+        const text = await navigator.clipboard.readText();
+        if (!text || !text.trim()) {
+          toast('Área de transferência vazia.', 'warn');
+          return;
+        }
+        const extracted = handleJsonAutoExtraction(text, true);
+        if (!extracted) {
+          if (text.includes('-----BEGIN') && text.includes('PRIVATE KEY-----')) {
+            let key = text.trim();
+            if (key.includes('\\n')) key = key.replace(/\\n/g, '\n');
+            inputPrivateKey.value = key;
+            toast('Chave privada PEM colada!', 'ok');
+          } else {
+            toast('Nenhum dado válido da DocuSign encontrado no texto colado.', 'warn');
+          }
+        }
+      } catch (_) {
+        inputPrivateKey.focus();
+        toast('Cole o JSON no campo de chave com Ctrl+V.', 'info');
+      }
+    });
+  }
+
+  // Intercepta cola no formulário todo para capturar JSON caso o foco esteja em outro input
+  if (formDocusign) {
+    formDocusign.addEventListener('paste', e => {
+      if (e.target === inputPrivateKey) return;
+      const text = (e.clipboardData || window.clipboardData)?.getData('text');
+      if (!text) return;
+      const trimmed = text.trim();
+      if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+        const config = extractDocuSignConfig(trimmed);
+        if (config && (config.integrationKey || config.privateRSAKey || config.userId)) {
+          e.preventDefault();
+          applyExtractedConfig(config, true);
+        }
+      }
+    });
+  }
 
   // 3. Persistência local de credenciais não-sensíveis
   function savePreferences() {
@@ -214,12 +330,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const expiresIn = parseInt(inputExpires.value, 10) || 3600;
 
     // Extrai de JSON caso ainda esteja como JSON no textarea
-    const parsed = parsePossibleJson(privateRSAKey);
-    if (parsed) {
-      const extractedKey = parsed.privateRSAKey || parsed.private_rsa_key || parsed.privateKey || parsed.private_key;
-      if (extractedKey && typeof extractedKey === 'string') {
-        privateRSAKey = extractedKey.trim();
-      }
+    const config = extractDocuSignConfig(privateRSAKey);
+    if (config) {
+      if (config.privateRSAKey) privateRSAKey = config.privateRSAKey;
+      if (config.integrationKey && !integrationKey) inputIntegrationKey.value = config.integrationKey;
+      if (config.userId && !userId) inputUserId.value = config.userId;
+      if (config.accountId && inputAccountId && !accountId) inputAccountId.value = config.accountId;
+      if (config.environment) setEnvironment(config.environment);
     }
 
     if (!integrationKey) {
@@ -287,7 +404,6 @@ document.addEventListener('DOMContentLoaded', () => {
       boxAccessToken.classList.remove('hidden');
       codeAccessToken.textContent = data.access_token;
       labelTokenExpires.textContent = `Válido por ${data.expires_in}s (${data.token_type})`;
-      codeJwt.textContent = data.jwt;
       codeClaims.textContent = JSON.stringify(data.claims, null, 2);
 
       panelResult.classList.remove('hidden');
@@ -331,8 +447,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       resultTitle.textContent = 'Asserção JWT Gerada (RS256)';
       resultMeta.textContent = `Público-alvo: ${data.audience} · Validade: ${data.expiresIn}s${data.accountId ? ' · Conta: ' + data.accountId : ''}`;
-      boxAccessToken.classList.add('hidden');
-      codeJwt.textContent = data.jwt;
+      boxAccessToken.classList.remove('hidden');
+      codeAccessToken.textContent = data.jwt;
+      labelTokenExpires.textContent = `Válido por ${data.expiresIn}s (JWT)`;
       codeClaims.textContent = JSON.stringify(data.claims, null, 2);
 
       panelResult.classList.remove('hidden');
@@ -377,11 +494,6 @@ document.addEventListener('DOMContentLoaded', () => {
   btnCopyAccessToken.addEventListener('click', () => {
     const text = codeAccessToken.textContent;
     if (text) copy(text, 'Access Token copiado!');
-  });
-
-  btnCopyJwt.addEventListener('click', () => {
-    const text = codeJwt.textContent;
-    if (text) copy(text, 'JWT Assertion copiado!');
   });
 
   btnCopyConsent.addEventListener('click', () => {

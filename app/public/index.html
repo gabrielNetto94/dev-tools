@@ -595,12 +595,34 @@
       <!-- ========================================== -->
       <!-- MÓDULO 3: DOCUSIGN TOKEN                   -->
       <!-- ========================================== -->
-      <div id="view-docusign" class="view hidden" style="overflow: auto;">
-        <div class="connect" style="max-width: 760px; margin: 0 auto; width: 100%;">
-          <form id="form-docusign" class="connect-card" style="width: 100%;" aria-labelledby="docusign-title" onsubmit="return false;">
+      <div id="view-docusign" class="view hidden">
+        <div class="connect" style="width: 100%;">
+          <form id="form-docusign" class="connect-card" style="width: 760px; max-width: 100%;" aria-labelledby="docusign-title" onsubmit="return false;">
             <div>
               <h2 id="docusign-title">Gerador de Token DocuSign</h2>
               <p class="lead">Gere asserções JWT assinadas com RS256 e obtenha tokens de acesso (OAuth 2.0 JWT Bearer Grant) para integrações machine-to-machine.</p>
+            </div>
+
+            <!-- Importação Rápida / Preenchimento de Todos os Campos -->
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; padding: 12px 14px; border: 1px solid var(--border-strong); background: var(--raised); border-radius: var(--r-md);">
+              <div style="display: flex; gap: 10px; align-items: center; min-width: 0;">
+                <svg class="i" viewBox="0 0 24 24" aria-hidden="true" style="color: var(--wine-500); flex: none; width: 18px; height: 18px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                <div style="min-width: 0;">
+                  <b style="display: block; font-size: 13px; color: var(--text); font-weight: 600;">Preenchimento automático do formulário</b>
+                  <span style="font-size: 12px; color: var(--text-2);">Cole o JSON da integradora (<span class="mono">tb_integradoras</span>) para preencher ambiente, chaves e credenciais de uma só vez.</span>
+                </div>
+              </div>
+              <div style="display: flex; gap: 8px; align-items: center; flex: none;">
+                <button type="button" class="btn" id="btn-docusign-paste-json" style="border-color: var(--wine-600); background: rgba(190, 18, 60, 0.12); color: var(--text); font-weight: 500; height: 32px; padding: 0 14px; display: inline-flex; align-items: center; gap: 6px;">
+                  <svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true" style="color: var(--wine-500);"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  Colar dados (JSON)
+                </button>
+                <label class="btn btn-sm btn-ghost" style="cursor: pointer; height: 32px; display: inline-flex; align-items: center; gap: 6px;" title="Carregar arquivo .json ou .pem">
+                  <input type="file" id="file-docusign-private-key" accept=".pem,.key,.txt,.json" class="sr" />
+                  <svg class="i i-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                  Arquivo
+                </label>
+              </div>
             </div>
 
             <!-- 1. Ambiente -->
@@ -637,15 +659,9 @@
 
             <!-- 3. Chave Privada RSA -->
             <div class="field">
-              <div class="input-row between">
-                <label for="input-docusign-private-key">Chave Privada RSA <span class="opt-t">· privateRSAKey / PEM</span></label>
-                <label class="link" style="cursor: pointer; font-size: 12px;">
-                  <input type="file" id="file-docusign-private-key" accept=".pem,.key,.txt,.json" class="sr" />
-                  Carregar arquivo (.pem / .json)
-                </label>
-              </div>
-              <textarea id="input-docusign-private-key" class="input mono" rows="5" placeholder="Cole a chave privada PEM ou o JSON contendo privateRSAKey&#10;-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----" spellcheck="false"></textarea>
-              <p class="hint">Aceita chave PEM direta ou JSON contendo o campo <span class="mono">privateRSAKey</span>.</p>
+              <label for="input-docusign-private-key">Chave Privada RSA <span class="opt-t">· privateRSAKey / PEM</span></label>
+              <textarea id="input-docusign-private-key" class="input mono" rows="5" placeholder="Cole a chave privada PEM ou o JSON da integradora&#10;-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----" spellcheck="false"></textarea>
+              <p class="hint">Preenchida automaticamente pelo botão no topo ou colando diretamente a chave PEM.</p>
             </div>
 
             <!-- 4. Validade e Opções -->
@@ -726,19 +742,6 @@
                 </div>
               </div>
 
-              <!-- JWT Assertion -->
-              <div class="field">
-                <div class="input-row between">
-                  <span class="flabel">JWT Assertion (Assinado RS256)</span>
-                  <span class="opt-t">assertion</span>
-                </div>
-                <div class="copyfield">
-                  <code id="code-docusign-jwt"></code>
-                  <button type="button" class="iconbtn xs" id="btn-copy-docusign-jwt" aria-label="Copiar JWT Assertion" title="Copiar JWT Assertion">
-                    <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"></path></svg>
-                  </button>
-                </div>
-              </div>
 
               <!-- Claims Decodificados -->
               <div class="field">

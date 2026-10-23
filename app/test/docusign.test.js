@@ -101,6 +101,72 @@ describe('DocuSign Domain Logic (Unit)', () => {
     assert.equal(result.claims.sub, 'user-from-json-test');
   });
 
+  it('extracts privateRSAKey from integradora_dados in full tb_integradoras JSON structure', () => {
+    const fullJson = JSON.stringify({
+      integradora: 'Docusign V2',
+      integradora_chave: '81b0a924-7091cbea1',
+      integradora_user: null,
+      integradora_senha: 'O725fc0Er5BY9PreHcL+czug0=',
+      integradora_dtacad: '2025-07-01T12:26:33.50588',
+      integradora_situacao: 1,
+      integradora_id: 25,
+      empresa_id: 1,
+      integradora_url: 'production',
+      integradora_tipo: 13,
+      integradora_secret_key: 'd6e0f85f-8d81bf34ec6a',
+      integradora_auth: null,
+      integradora_account_id: 'dd5e9fe0-013adcb77eae',
+      integradora_account_uri: 'https://na2.docusign.net/restapi/v2.1',
+      integradora_email: '',
+      integradora_dados: {
+        publicRSAKey: publicKey,
+        privateRSAKey: privateKey,
+        authServiceSelected: 0,
+      },
+      integradora_authentication_data: null,
+      integradora_user_upd: 11,
+    });
+
+    const result = generateDocuSignJWT({
+      integrationKey: '81b0a924-7091cbea1',
+      userId: 'd6e0f85f-8d81bf34ec6a',
+      privateRSAKey: fullJson,
+      environment: 'production',
+    });
+
+    assert.ok(result.jwt);
+    assert.equal(result.claims.iss, '81b0a924-7091cbea1');
+    assert.equal(result.claims.sub, 'd6e0f85f-8d81bf34ec6a');
+    assert.equal(result.claims.aud, 'account.docusign.com');
+  });
+
+  it('extracts privateRSAKey when integradora_dados is a stringified JSON', () => {
+    const dadosString = JSON.stringify({
+      publicRSAKey: publicKey,
+      privateRSAKey: privateKey,
+      authServiceSelected: 0,
+    });
+    const fullJson = JSON.stringify({
+      integradora: 'Docusign V2',
+      integradora_chave: '81b0a924-7091cbea1',
+      integradora_url: 'production',
+      integradora_secret_key: 'd6e0f85f-8d81bf34ec6a',
+      integradora_account_id: 'dd5e9fe0-013adcb77eae',
+      integradora_dados: dadosString,
+    });
+
+    const result = generateDocuSignJWT({
+      integrationKey: '81b0a924-7091cbea1',
+      userId: 'd6e0f85f-8d81bf34ec6a',
+      privateRSAKey: fullJson,
+      environment: 'production',
+    });
+
+    assert.ok(result.jwt);
+    assert.equal(result.claims.iss, '81b0a924-7091cbea1');
+    assert.equal(result.claims.sub, 'd6e0f85f-8d81bf34ec6a');
+  });
+
   it('rejects missing integrationKey', () => {
     assert.throws(
       () => generateDocuSignJWT({ integrationKey: '', userId: '123', privateRSAKey: privateKey }),
@@ -171,6 +237,48 @@ describe('DocuSign API Endpoints', () => {
     assert.equal(data.claims.iss, 'alias-client-id');
     assert.equal(data.claims.sub, 'alias-user-guid');
     assert.equal(data.accountId, '12345678');
+  });
+
+  it('POST /api/docusign/jwt accepts tb_integradoras row JSON payload directly', async () => {
+    const payload = {
+      integradora: 'Docusign V2',
+      integradora_chave: '81b0a924-7091cbea1',
+      integradora_user: null,
+      integradora_senha: 'O725fc0Er5BY9PreHcL+czug0=',
+      integradora_dtacad: '2025-07-01T12:26:33.50588',
+      integradora_situacao: 1,
+      integradora_id: 25,
+      empresa_id: 1,
+      integradora_url: 'production',
+      integradora_tipo: 13,
+      integradora_secret_key: 'd6e0f85f-8d81bf34ec6a',
+      integradora_auth: null,
+      integradora_account_id: 'dd5e9fe0-013adcb77eae',
+      integradora_account_uri: 'https://na2.docusign.net/restapi/v2.1',
+      integradora_email: '',
+      integradora_dados: {
+        publicRSAKey: publicKey,
+        privateRSAKey: privateKey,
+        authServiceSelected: 0,
+      },
+      integradora_authentication_data: null,
+      integradora_user_upd: 11,
+    };
+
+    const res = await fetch(`${BASE_URL}/api/docusign/jwt`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    assert.equal(res.status, 200);
+    const data = await res.json();
+    assert.equal(data.success, true);
+    assert.ok(data.jwt);
+    assert.equal(data.claims.iss, '81b0a924-7091cbea1');
+    assert.equal(data.claims.sub, 'd6e0f85f-8d81bf34ec6a');
+    assert.equal(data.accountId, 'dd5e9fe0-013adcb77eae');
+    assert.equal(data.audience, 'account.docusign.com');
   });
 
   it('POST /api/docusign/jwt with missing parameters returns 400', async () => {

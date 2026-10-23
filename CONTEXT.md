@@ -190,7 +190,9 @@ The DocuSign Token Generator module automates OAuth 2.0 JWT Grant authentication
      - `client_id` / `integrationKey` / `integradora_chave`
      - `userId` / `user_id` / `integradora_secret_key`
      - `accountId` / `account_id` / `integradora_account_id`
-   - Flexible Private Key: Accepts direct PEM text or full JSON containing `privateRSAKey` (e.g. `{ "publicRSAKey": "...", "privateRSAKey": "..." }`).
+     - `environment` / `integradora_url` (`production`, `prod`, `account.docusign.com` vs `demo`, `sandbox`, `account-d.docusign.com`)
+   - Flexible Private Key: Accepts direct PEM text, standalone JSON with `privateRSAKey`, or the full `tb_integradoras` row JSON where `privateRSAKey` is nested inside `integradora_dados` (either as an object or as a serialized JSON string).
+   - Smart Paste & Clipboard: Dedicated "Colar dados (JSON)" button, automatic form paste interception, and file upload (`.pem`, `.key`, `.json`) that auto-populates all inputs, switches the environment, and formats the RSA PEM key.
 3. **One-Time Consent Handling**:
    - Detects `consent_required` error responses (HTTP 400) and immediately constructs and presents the direct authorization URL (`/oauth/auth?response_type=code&scope=signature%20impersonation...`).
 
